@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#173c35">
   <title>{% block title %}{{ salon_name }}{% endblock %}</title>
+  <link rel="manifest" href="/static/manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
@@ -20,6 +24,7 @@
       {% else %}
       <a href="/login">Entrar</a>
       {% endif %}
+      <button class="install-app" id="install-app" type="button" hidden>Instalar app</button>
     </nav>
   </header>
   <main>
@@ -28,5 +33,6 @@
   <footer>
     <p>{{ salon_name }} · agendamento online</p>
   </footer>
+  <script src="/static/js/pwa.js" defer></script>
 </body>
 </html>

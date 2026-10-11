@@ -50,6 +50,10 @@ Guarde o segredo somente nas propriedades do Apps Script e nas variáveis de amb
 
 ## Operação e limites
 
+### Instalar no Android
+
+O site pode ser instalado como aplicativo PWA sem publicar na Play Store. Depois de publicar as alterações no Render, abra o endereço HTTPS do salão no Chrome para Android. O botão **Instalar app** pode aparecer no menu do site; se não aparecer, use o menu ⋮ do Chrome → **Instalar app** ou **Adicionar à tela inicial**. O app usa o mesmo site e precisa de internet para consultar horários e fazer agendamentos. Por segurança, páginas de conta, login e agendamento não são armazenadas para uso offline.
+
 - O banco padrão é SQLite. Mantenha uma única instância do serviço; para escalar para múltiplas instâncias, migre para PostgreSQL e configure um driver e migrações de esquema.
 - A aplicação verifica `/healthz` para indicar disponibilidade e acesso ao banco.
 - O sistema protege a reserva simultânea do mesmo horário usando uma transação de escrita no SQLite.

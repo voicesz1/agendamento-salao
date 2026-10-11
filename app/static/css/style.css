@@ -79,6 +79,16 @@ nav a::after {
 }
 nav a:hover { color: var(--pine); }
 nav a:hover::after { transform: scaleX(1); }
+.install-app {
+  padding: 0.38rem 0.8rem;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  color: var(--pine);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.install-app:hover { background: rgb(195 164 107 / 12%); }
 main { padding: 2.5rem 6vw 5rem; }
 footer {
   padding: 1.7rem 6vw;
