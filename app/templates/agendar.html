@@ -7,8 +7,6 @@
   <p class="lede">Os horários seguem o funcionamento do salão e já descontam os agendamentos confirmados.</p>
   {% if customer %}
   <p class="ok">Agendamento vinculado à sua conta. Você poderá consultá-lo em Minha conta.</p>
-  {% else %}
-  <p class="hint"><a class="text-link" href="/login">Entre ou crie uma conta</a> antes de agendar para guardar este horário no seu histórico.</p>
   {% endif %}
 
   {% if error %}
@@ -50,11 +48,11 @@
 
     <label>
       Seu nome
-      <input type="text" name="client_name" value="{{ customer.name if customer else '' }}" required maxlength="120" placeholder="Nome completo" {% if customer %}readonly{% endif %}>
+      <input type="text" name="client_name" value="{{ customer.name }}" required maxlength="120" readonly>
     </label>
     <label>
       WhatsApp
-      <input type="tel" name="client_phone" value="{{ customer.phone if customer else '' }}" required maxlength="30" placeholder="(11) 99999-9999" {% if customer %}readonly{% endif %}>
+      <input type="tel" name="client_phone" value="{{ customer.phone }}" required maxlength="30" readonly>
     </label>
     <label>
       Observação (opcional)

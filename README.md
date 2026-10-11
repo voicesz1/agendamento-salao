@@ -1,6 +1,6 @@
 # Agendamento Salão
 
-Aplicativo de agendamento para salão de unhas, com catálogo de serviços, horários disponíveis, contas de clientes com histórico e painel administrativo.
+Aplicativo de agendamento para salão de unhas, com catálogo de serviços, horários disponíveis, contas de clientes com histórico e painel administrativo. Para reservar, a cliente precisa entrar ou criar uma conta e confirmar o e-mail; depois, o agendamento fica salvo no histórico.
 
 ## Executar localmente
 
@@ -54,3 +54,4 @@ Guarde o segredo somente nas propriedades do Apps Script e nas variáveis de amb
 - A aplicação verifica `/healthz` para indicar disponibilidade e acesso ao banco.
 - O sistema protege a reserva simultânea do mesmo horário usando uma transação de escrita no SQLite.
 - O aviso pelo WhatsApp é manual; o cliente pode abrir a conversa pela confirmação do agendamento.
+- O agendamento exige uma conta de cliente com e-mail confirmado e fica vinculado ao histórico dessa conta. Reservas antigas feitas sem conta permanecem sem vínculo.

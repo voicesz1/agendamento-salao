@@ -14,11 +14,14 @@ class EmailDeliveryError(RuntimeError):
     pass
 
 
-def send_confirmation_email(email: str, name: str, token: str) -> None:
+def send_confirmation_email(email: str, name: str, token: str, next_path: str = "") -> None:
     if not EMAIL_WEBHOOK_URL or len(EMAIL_WEBHOOK_SECRET) < 32 or not PUBLIC_BASE_URL:
         raise EmailConfigurationError("O envio de e-mail ainda não está configurado.")
 
-    confirmation_url = f"{PUBLIC_BASE_URL}/cliente/verificar?{urlencode({'token': token})}"
+    query = {"token": token}
+    if next_path == "/agendar":
+        query["next"] = next_path
+    confirmation_url = f"{PUBLIC_BASE_URL}/cliente/verificar?{urlencode(query)}"
     safe_name = escape(name)
     safe_url = escape(confirmation_url, quote=True)
     text_body = (

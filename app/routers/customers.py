@@ -28,6 +28,10 @@ EMAIL_SENDS: dict[str, list[float]] = {}
 VERIFICATION_LIFETIME = timedelta(hours=24)
 
 
+def safe_next_path(value: str | None) -> str:
+    return "/agendar" if value == "/agendar" else ""
+
+
 def csrf_value(request: Request) -> str:
     token = request.session.get("csrf_token")
     if not token:
@@ -61,12 +65,12 @@ def current_customer(request: Request, db: Session) -> Customer | None:
     return customer
 
 
-def issue_verification(customer: Customer, db: Session) -> str:
+def issue_verification(customer: Customer, db: Session, next_path: str = "") -> str:
     token = secrets.token_urlsafe(32)
     customer.verification_token_hash = sha256(token.encode()).hexdigest()
     customer.verification_expires_at = datetime.now(TIMEZONE).replace(tzinfo=None) + VERIFICATION_LIFETIME
     db.commit()
-    send_confirmation_email(customer.email, customer.name, token)
+    send_confirmation_email(customer.email, customer.name, token, next_path=safe_next_path(next_path))
     return token
 
 
@@ -84,13 +88,14 @@ def allow_email_send(request: Request) -> bool:
 
 
 @router.get("/cadastro", response_class=HTMLResponse)
-def register_form(request: Request, db: Session = Depends(get_db)):
+def register_form(request: Request, next: str | None = None, db: Session = Depends(get_db)):
+    next_path = safe_next_path(next)
     if current_customer(request, db):
-        return RedirectResponse("/cliente/minha-conta", status_code=303)
+        return RedirectResponse(next_path or "/cliente/minha-conta", status_code=303)
     return templates.TemplateResponse(
         request,
         "customer/auth.html",
-        page_context(request, db, mode="register", error=None),
+        page_context(request, db, mode="register", error=None, next_path=next_path),
     )
 
 
@@ -101,9 +106,11 @@ def register(
     email: str = Form(...),
     phone: str = Form(...),
     password: str = Form(...),
+    next_path: str = Form(""),
     _csrf: None = Depends(validate_csrf),
     db: Session = Depends(get_db),
 ):
+    next_path = safe_next_path(next_path)
     normalized_email = email.strip().lower()
     phone_digits = "".join(ch for ch in phone if ch.isdigit())
     error = None
@@ -124,7 +131,7 @@ def register(
         return templates.TemplateResponse(
             request,
             "customer/auth.html",
-            page_context(request, db, mode="register", error=error, name=name.strip(), email=normalized_email, phone=phone),
+            page_context(request, db, mode="register", error=error, name=name.strip(), email=normalized_email, phone=phone, next_path=next_path),
             status_code=400,
         )
 
@@ -146,12 +153,12 @@ def register(
         return templates.TemplateResponse(
             request,
             "customer/auth.html",
-            page_context(request, db, mode="register", error="Já existe uma conta com este e-mail.", name=name.strip(), email=normalized_email, phone=phone),
+            page_context(request, db, mode="register", error="Já existe uma conta com este e-mail.", name=name.strip(), email=normalized_email, phone=phone, next_path=next_path),
             status_code=400,
         )
 
     try:
-        send_confirmation_email(customer.email, customer.name, token)
+        send_confirmation_email(customer.email, customer.name, token, next_path=next_path)
         notice = "Conta criada. Enviamos um link de confirmação para seu e-mail; ele expira em 24 horas."
         mail_error = None
     except (EmailConfigurationError, EmailDeliveryError, httpx.HTTPError):
@@ -164,21 +171,22 @@ def register(
         "customer/auth.html",
         page_context(
             request, db, mode="register", error=None, notice=notice, mail_error=mail_error,
-            show_resend=True, email=normalized_email,
+            show_resend=True, email=normalized_email, next_path=next_path,
         ),
     )
 
 
 @router.get("/login", response_class=HTMLResponse)
-def login_form(request: Request, db: Session = Depends(get_db)):
+def login_form(request: Request, next: str | None = None, db: Session = Depends(get_db)):
+    next_path = safe_next_path(next)
     if current_customer(request, db):
-        return RedirectResponse("/cliente/minha-conta", status_code=303)
+        return RedirectResponse(next_path or "/cliente/minha-conta", status_code=303)
     if request.session.get("admin") is True:
         return RedirectResponse("/admin", status_code=303)
     return templates.TemplateResponse(
         request,
         "customer/auth.html",
-        page_context(request, db, mode="login", error=None),
+        page_context(request, db, mode="login", error=None, next_path=next_path),
     )
 
 
@@ -187,9 +195,11 @@ def login(
     request: Request,
     username_or_email: str = Form(...),
     password: str = Form(...),
+    next_path: str = Form(""),
     _csrf: None = Depends(validate_csrf),
     db: Session = Depends(get_db),
 ):
+    next_path = safe_next_path(next_path)
     client_ip = request.client.host if request.client else "unknown"
     now = time.monotonic()
     with LOGIN_LOCK:
@@ -213,7 +223,7 @@ def login(
             return RedirectResponse("/admin", status_code=303)
         request.session["customer_id"] = customer.id
         csrf_value(request)
-        return RedirectResponse("/cliente/minha-conta", status_code=303)
+        return RedirectResponse(next_path or "/cliente/minha-conta", status_code=303)
 
     if valid_customer and not customer.email_verified_at:
         return templates.TemplateResponse(
@@ -222,7 +232,7 @@ def login(
             page_context(
                 request, db, mode="login",
                 error="Confirme seu e-mail antes de entrar. Se não recebeu o link, solicite outro abaixo.",
-                username_or_email=identifier, email=identifier, show_resend=True,
+                username_or_email=identifier, email=identifier, show_resend=True, next_path=next_path,
             ),
             status_code=401,
         )
@@ -230,7 +240,7 @@ def login(
     return templates.TemplateResponse(
         request,
         "customer/auth.html",
-        page_context(request, db, mode="login", error="Usuário/e-mail ou senha incorretos.", username_or_email=username_or_email.strip()),
+        page_context(request, db, mode="login", error="Usuário/e-mail ou senha incorretos.", username_or_email=username_or_email.strip(), next_path=next_path),
         status_code=401,
     )
 
@@ -239,9 +249,11 @@ def login(
 def resend_confirmation(
     request: Request,
     email: str = Form(...),
+    next_path: str = Form(""),
     _csrf: None = Depends(validate_csrf),
     db: Session = Depends(get_db),
 ):
+    next_path = safe_next_path(next_path)
     if not allow_email_send(request):
         return HTMLResponse("Limite de envio atingido. Tente novamente daqui a uma hora.", status_code=429)
 
@@ -250,7 +262,7 @@ def resend_confirmation(
     mail_error = None
     if customer and not customer.email_verified_at:
         try:
-            issue_verification(customer, db)
+            issue_verification(customer, db, next_path)
         except (EmailConfigurationError, EmailDeliveryError, httpx.HTTPError):
             mail_error = "Não foi possível enviar agora. Tente novamente mais tarde."
 
@@ -260,13 +272,14 @@ def resend_confirmation(
         "customer/auth.html",
         page_context(
             request, db, mode="login", error=mail_error, notice=notice,
-            email=normalized_email, show_resend=True,
+            email=normalized_email, show_resend=True, next_path=next_path,
         ),
     )
 
 
 @router.get("/verificar", response_class=HTMLResponse)
-def verify_email(request: Request, token: str, db: Session = Depends(get_db)):
+def verify_email(request: Request, token: str, next: str | None = None, db: Session = Depends(get_db)):
+    next_path = safe_next_path(next)
     token_hash = sha256(token.encode()).hexdigest()
     customer = db.query(Customer).filter(Customer.verification_token_hash == token_hash).first()
     now = datetime.now(TIMEZONE).replace(tzinfo=None)
@@ -276,7 +289,7 @@ def verify_email(request: Request, token: str, db: Session = Depends(get_db)):
             "customer/verify.html",
             page_context(
                 request, db, valid=False, token="",
-                email=customer.email if customer else "",
+                email=customer.email if customer else "", next_path=next_path,
             ),
             status_code=400,
         )
@@ -284,7 +297,7 @@ def verify_email(request: Request, token: str, db: Session = Depends(get_db)):
     return templates.TemplateResponse(
         request,
         "customer/verify.html",
-        page_context(request, db, valid=True, token=token, email=customer.email),
+        page_context(request, db, valid=True, token=token, email=customer.email, next_path=next_path),
     )
 
 
@@ -292,9 +305,11 @@ def verify_email(request: Request, token: str, db: Session = Depends(get_db)):
 def confirm_email(
     request: Request,
     token: str = Form(...),
+    next_path: str = Form(""),
     _csrf: None = Depends(validate_csrf),
     db: Session = Depends(get_db),
 ):
+    next_path = safe_next_path(next_path)
     token_hash = sha256(token.encode()).hexdigest()
     customer = db.query(Customer).filter(Customer.verification_token_hash == token_hash).first()
     now = datetime.now(TIMEZONE).replace(tzinfo=None)
@@ -306,7 +321,7 @@ def confirm_email(
         return templates.TemplateResponse(
             request,
             "customer/verify.html",
-            page_context(request, db, valid=False, token="", email=customer.email if customer else ""),
+            page_context(request, db, valid=False, token="", email=customer.email if customer else "", next_path=next_path),
             status_code=400,
         )
 
@@ -317,7 +332,7 @@ def confirm_email(
     request.session.clear()
     request.session["customer_id"] = customer.id
     csrf_value(request)
-    return RedirectResponse("/cliente/minha-conta?confirmado=1", status_code=303)
+    return RedirectResponse(next_path or "/cliente/minha-conta?confirmado=1", status_code=303)
 
 
 @router.get("/minha-conta", response_class=HTMLResponse)
