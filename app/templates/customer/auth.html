@@ -9,8 +9,7 @@
   <p class="lede">Acompanhe seus agendamentos em um só lugar.</p>
   {% else %}
   <h1>Entrar</h1>
-  <p class="lede">Use seu e-mail de cliente ou o usuário da dona do estabelecimento.</p>
-  <p class="hint">Dona do estabelecimento: use o usuário <strong>dona</strong> e a senha administrativa já configurada.</p>
+  <p class="lede">Entre para acessar sua conta e continuar.</p>
   {% endif %}
 
   {% if error %}<p class="alert">{{ error }}</p>{% endif %}
@@ -32,7 +31,7 @@
   <form method="post" action="/cliente/login" class="booking">
     <input type="hidden" name="csrf" value="{{ csrf_token }}">
     <input type="hidden" name="next_path" value="{{ next_path|default('') }}">
-    <label>E-mail ou usuário<input type="text" name="username_or_email" value="{{ username_or_email|default('') }}" required autocomplete="username" placeholder="E-mail ou dona"></label>
+    <label>E-mail ou usuário<input type="text" name="username_or_email" value="{{ username_or_email|default('') }}" required autocomplete="username" placeholder="Digite seu e-mail ou usuário"></label>
     <label>Senha<input type="password" name="password" required autocomplete="current-password"></label>
     <button class="btn" type="submit">Entrar</button>
   </form>
