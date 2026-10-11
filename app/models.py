@@ -56,6 +56,9 @@ class Customer(Base):
     phone: Mapped[str] = mapped_column(String(30))
     password_hash: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime)
+    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    verification_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    verification_expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     appointments: Mapped[list["Appointment"]] = relationship(back_populates="customer")
 

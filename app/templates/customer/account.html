@@ -4,6 +4,7 @@
 <section class="narrow">
   <p class="eyebrow">Área da cliente</p>
   <h1>Olá, {{ customer.name }}</h1>
+  {% if verified %}<p class="ok">E-mail confirmado. Sua conta está ativa.</p>{% endif %}
   <p class="lede">Aqui você encontra os agendamentos feitos com esta conta.</p>
 
   <form method="post" action="/cliente/sair">

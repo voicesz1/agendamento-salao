@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Confirmar e-mail · {{ salon_name }}{% endblock %}
+{% block content %}
+<section class="narrow login-box">
+  <p class="eyebrow">Área da cliente</p>
+  {% if valid %}
+  <h1>Confirme seu e-mail</h1>
+  <p class="lede">Confirme que você tem acesso a {{ email }} para ativar sua conta.</p>
+  <form method="post" action="/cliente/verificar" class="booking">
+    <input type="hidden" name="csrf" value="{{ csrf_token }}">
+    <input type="hidden" name="token" value="{{ token }}">
+    <button class="btn" type="submit">Confirmar e-mail</button>
+  </form>
+  {% else %}
+  <h1>Link inválido ou expirado</h1>
+  <p class="alert">Solicite um novo link para confirmar sua conta.</p>
+  {% if email %}
+  <form method="post" action="/cliente/reenviar-confirmacao" class="booking">
+    <input type="hidden" name="csrf" value="{{ csrf_token }}">
+    <label>Reenviar confirmação para
+      <input type="email" name="email" value="{{ email }}" required maxlength="254" autocomplete="email">
+    </label>
+    <button class="btn" type="submit">Enviar novo link</button>
+  </form>
+  {% endif %}
+  <p><a class="text-link" href="/login">Voltar para entrar</a></p>
+  {% endif %}
+</section>
+{% endblock %}

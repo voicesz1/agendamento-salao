@@ -14,8 +14,10 @@
   {% endif %}
 
   {% if error %}<p class="alert">{{ error }}</p>{% endif %}
+  {% if notice %}<p class="ok">{{ notice }}</p>{% endif %}
+  {% if mail_error %}<p class="alert">{{ mail_error }}</p>{% endif %}
 
-  {% if mode == "register" %}
+  {% if mode == "register" and not notice and not mail_error %}
   <form method="post" action="/cliente/cadastro" class="booking">
     <input type="hidden" name="csrf" value="{{ csrf_token }}">
     <label>Nome completo<input name="name" value="{{ name|default('') }}" required maxlength="120" autocomplete="name"></label>
@@ -25,7 +27,7 @@
     <button class="btn" type="submit">Criar conta</button>
   </form>
   <p>Já tem uma conta? <a class="text-link" href="/cliente/login">Entrar</a></p>
-  {% else %}
+  {% elif mode == "login" %}
   <form method="post" action="/cliente/login" class="booking">
     <input type="hidden" name="csrf" value="{{ csrf_token }}">
     <label>E-mail ou usuário<input type="text" name="username_or_email" value="{{ username_or_email|default('') }}" required autocomplete="username" placeholder="E-mail ou dona"></label>
@@ -33,6 +35,20 @@
     <button class="btn" type="submit">Entrar</button>
   </form>
   <p>É cliente e ainda não tem conta? <a class="text-link" href="/cliente/cadastro">Criar conta</a></p>
+  {% endif %}
+
+  {% if show_resend %}
+  <form method="post" action="/cliente/reenviar-confirmacao" class="booking">
+    <input type="hidden" name="csrf" value="{{ csrf_token }}">
+    <label>Reenviar confirmação para
+      <input type="email" name="email" value="{{ email|default('') }}" required maxlength="254" autocomplete="email">
+    </label>
+    <button class="linkish" type="submit">Enviar novo link</button>
+  </form>
+  {% endif %}
+
+  {% if mode == "register" and (notice or mail_error) %}
+  <p><a class="text-link" href="/login">Voltar para entrar</a></p>
   {% endif %}
 </section>
 {% endblock %}

@@ -2,9 +2,11 @@ import hmac
 import re
 import secrets
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
+from hashlib import sha256
 from threading import Lock
 
+import httpx
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -13,6 +15,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.config import BASE_DIR, TIMEZONE
 from app.database import get_db
+from app.email_verification import EmailConfigurationError, EmailDeliveryError, send_confirmation_email
 from app.models import Appointment, Customer
 from app.security import hash_password, verify_password
 from app.settings_store import get_setting
@@ -21,6 +24,8 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
 router = APIRouter(prefix="/cliente")
 LOGIN_FAILURES: dict[str, list[float]] = {}
 LOGIN_LOCK = Lock()
+EMAIL_SENDS: dict[str, list[float]] = {}
+VERIFICATION_LIFETIME = timedelta(hours=24)
 
 
 def csrf_value(request: Request) -> str:
@@ -54,6 +59,28 @@ def current_customer(request: Request, db: Session) -> Customer | None:
     if customer is None:
         request.session.pop("customer_id", None)
     return customer
+
+
+def issue_verification(customer: Customer, db: Session) -> str:
+    token = secrets.token_urlsafe(32)
+    customer.verification_token_hash = sha256(token.encode()).hexdigest()
+    customer.verification_expires_at = datetime.now(TIMEZONE).replace(tzinfo=None) + VERIFICATION_LIFETIME
+    db.commit()
+    send_confirmation_email(customer.email, customer.name, token)
+    return token
+
+
+def allow_email_send(request: Request) -> bool:
+    ip = request.client.host if request.client else "unknown"
+    now = time.monotonic()
+    with LOGIN_LOCK:
+        recent = [stamp for stamp in EMAIL_SENDS.get(ip, []) if now - stamp < 3600]
+        if len(recent) >= 5:
+            EMAIL_SENDS[ip] = recent
+            return False
+        recent.append(now)
+        EMAIL_SENDS[ip] = recent
+        return True
 
 
 @router.get("/cadastro", response_class=HTMLResponse)
@@ -90,6 +117,8 @@ def register(
         error = "A senha precisa ter pelo menos 12 caracteres."
     elif db.query(Customer).filter(Customer.email == normalized_email).first():
         error = "Já existe uma conta com este e-mail. Entre ou use outro e-mail."
+    elif not allow_email_send(request):
+        error = "Limite de envio atingido. Tente novamente daqui a uma hora."
 
     if error:
         return templates.TemplateResponse(
@@ -99,12 +128,15 @@ def register(
             status_code=400,
         )
 
+    token = secrets.token_urlsafe(32)
     customer = Customer(
         name=name.strip(),
         email=normalized_email,
         phone=phone_digits,
         password_hash=hash_password(password),
         created_at=datetime.now(TIMEZONE).replace(tzinfo=None),
+        verification_token_hash=sha256(token.encode()).hexdigest(),
+        verification_expires_at=datetime.now(TIMEZONE).replace(tzinfo=None) + VERIFICATION_LIFETIME,
     )
     db.add(customer)
     try:
@@ -118,10 +150,23 @@ def register(
             status_code=400,
         )
 
-    request.session.clear()
-    request.session["customer_id"] = customer.id
-    csrf_value(request)
-    return RedirectResponse("/cliente/minha-conta", status_code=303)
+    try:
+        send_confirmation_email(customer.email, customer.name, token)
+        notice = "Conta criada. Enviamos um link de confirmação para seu e-mail; ele expira em 24 horas."
+        mail_error = None
+    except (EmailConfigurationError, EmailDeliveryError, httpx.HTTPError):
+        notice = None
+        mail_error = "Sua conta foi criada, mas não foi possível enviar o e-mail agora. Você pode tentar reenviar abaixo."
+    request.session.pop("customer_id", None)
+    request.session.pop("admin", None)
+    return templates.TemplateResponse(
+        request,
+        "customer/auth.html",
+        page_context(
+            request, db, mode="register", error=None, notice=notice, mail_error=mail_error,
+            show_resend=True, email=normalized_email,
+        ),
+    )
 
 
 @router.get("/login", response_class=HTMLResponse)
@@ -156,9 +201,10 @@ def login(
 
     identifier = username_or_email.strip().lower()
     customer = db.query(Customer).filter(Customer.email == identifier).first()
+    valid_customer = bool(customer and verify_password(password, customer.password_hash))
     admin_password_hash = get_setting(db, "admin_password_hash")
     is_owner = identifier == "dona" and admin_password_hash and verify_password(password, admin_password_hash)
-    if is_owner or (customer and verify_password(password, customer.password_hash)):
+    if is_owner or (valid_customer and customer.email_verified_at):
         with LOGIN_LOCK:
             LOGIN_FAILURES.pop(client_ip, None)
         request.session.clear()
@@ -169,12 +215,109 @@ def login(
         csrf_value(request)
         return RedirectResponse("/cliente/minha-conta", status_code=303)
 
+    if valid_customer and not customer.email_verified_at:
+        return templates.TemplateResponse(
+            request,
+            "customer/auth.html",
+            page_context(
+                request, db, mode="login",
+                error="Confirme seu e-mail antes de entrar. Se não recebeu o link, solicite outro abaixo.",
+                username_or_email=identifier, email=identifier, show_resend=True,
+            ),
+            status_code=401,
+        )
+
     return templates.TemplateResponse(
         request,
         "customer/auth.html",
         page_context(request, db, mode="login", error="Usuário/e-mail ou senha incorretos.", username_or_email=username_or_email.strip()),
         status_code=401,
     )
+
+
+@router.post("/reenviar-confirmacao", response_class=HTMLResponse)
+def resend_confirmation(
+    request: Request,
+    email: str = Form(...),
+    _csrf: None = Depends(validate_csrf),
+    db: Session = Depends(get_db),
+):
+    if not allow_email_send(request):
+        return HTMLResponse("Limite de envio atingido. Tente novamente daqui a uma hora.", status_code=429)
+
+    normalized_email = email.strip().lower()
+    customer = db.query(Customer).filter(Customer.email == normalized_email).first()
+    mail_error = None
+    if customer and not customer.email_verified_at:
+        try:
+            issue_verification(customer, db)
+        except (EmailConfigurationError, EmailDeliveryError, httpx.HTTPError):
+            mail_error = "Não foi possível enviar agora. Tente novamente mais tarde."
+
+    notice = "Se existir uma conta pendente para esse e-mail, enviaremos um novo link de confirmação."
+    return templates.TemplateResponse(
+        request,
+        "customer/auth.html",
+        page_context(
+            request, db, mode="login", error=mail_error, notice=notice,
+            email=normalized_email, show_resend=True,
+        ),
+    )
+
+
+@router.get("/verificar", response_class=HTMLResponse)
+def verify_email(request: Request, token: str, db: Session = Depends(get_db)):
+    token_hash = sha256(token.encode()).hexdigest()
+    customer = db.query(Customer).filter(Customer.verification_token_hash == token_hash).first()
+    now = datetime.now(TIMEZONE).replace(tzinfo=None)
+    if not customer or not customer.verification_expires_at or customer.verification_expires_at <= now:
+        return templates.TemplateResponse(
+            request,
+            "customer/verify.html",
+            page_context(
+                request, db, valid=False, token="",
+                email=customer.email if customer else "",
+            ),
+            status_code=400,
+        )
+
+    return templates.TemplateResponse(
+        request,
+        "customer/verify.html",
+        page_context(request, db, valid=True, token=token, email=customer.email),
+    )
+
+
+@router.post("/verificar", response_class=HTMLResponse)
+def confirm_email(
+    request: Request,
+    token: str = Form(...),
+    _csrf: None = Depends(validate_csrf),
+    db: Session = Depends(get_db),
+):
+    token_hash = sha256(token.encode()).hexdigest()
+    customer = db.query(Customer).filter(Customer.verification_token_hash == token_hash).first()
+    now = datetime.now(TIMEZONE).replace(tzinfo=None)
+    if not customer or not customer.verification_expires_at or customer.verification_expires_at <= now:
+        if customer:
+            customer.verification_token_hash = None
+            customer.verification_expires_at = None
+            db.commit()
+        return templates.TemplateResponse(
+            request,
+            "customer/verify.html",
+            page_context(request, db, valid=False, token="", email=customer.email if customer else ""),
+            status_code=400,
+        )
+
+    customer.email_verified_at = now
+    customer.verification_token_hash = None
+    customer.verification_expires_at = None
+    db.commit()
+    request.session.clear()
+    request.session["customer_id"] = customer.id
+    csrf_value(request)
+    return RedirectResponse("/cliente/minha-conta?confirmado=1", status_code=303)
 
 
 @router.get("/minha-conta", response_class=HTMLResponse)
@@ -192,7 +335,10 @@ def account(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(
         request,
         "customer/account.html",
-        page_context(request, db, customer=customer, appointments=appointments),
+        page_context(
+            request, db, customer=customer, appointments=appointments,
+            verified=request.query_params.get("confirmado") == "1",
+        ),
     )
 
 

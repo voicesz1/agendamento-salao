@@ -44,9 +44,28 @@ def get_db():
 def migrate_customer_accounts() -> None:
     """Add the optional customer link to existing appointment tables."""
     columns = {column["name"] for column in inspect(engine).get_columns("appointments")}
-    if "customer_id" in columns:
-        return
     with engine.begin() as connection:
-        connection.execute(
-            text("ALTER TABLE appointments ADD COLUMN customer_id INTEGER REFERENCES customers(id)")
-        )
+        if "customer_id" not in columns:
+            connection.execute(
+                text("ALTER TABLE appointments ADD COLUMN customer_id INTEGER REFERENCES customers(id)")
+            )
+
+        customer_columns = {column["name"] for column in inspect(connection).get_columns("customers")}
+        is_legacy_customer_schema = "email_verified_at" not in customer_columns
+        new_columns = {
+            "email_verified_at": "TIMESTAMP NULL",
+            "verification_token_hash": "VARCHAR(64) NULL",
+            "verification_expires_at": "TIMESTAMP NULL",
+        }
+        for name, sql_type in new_columns.items():
+            if name not in customer_columns:
+                connection.execute(text(f"ALTER TABLE customers ADD COLUMN {name} {sql_type}"))
+
+        # Accounts created before email verification was introduced stay usable.
+        if is_legacy_customer_schema:
+            connection.execute(
+                text(
+                    "UPDATE customers SET email_verified_at = created_at "
+                    "WHERE email_verified_at IS NULL AND verification_token_hash IS NULL"
+                )
+            )

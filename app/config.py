@@ -16,6 +16,11 @@ SECRET_KEY = os.getenv("SECRET_KEY", "development-only-secret-change-before-depl
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
 SESSION_HTTPS_ONLY = os.getenv("SESSION_HTTPS_ONLY", str(IS_PRODUCTION)).lower() in {"1", "true", "yes"}
 SESSION_MAX_AGE = int(os.getenv("SESSION_MAX_AGE", "28800"))
+EMAIL_WEBHOOK_URL = os.getenv("EMAIL_WEBHOOK_URL", "").strip()
+EMAIL_WEBHOOK_SECRET = os.getenv("EMAIL_WEBHOOK_SECRET", "").strip()
+PUBLIC_BASE_URL = (os.getenv("PUBLIC_BASE_URL") or os.getenv("RENDER_EXTERNAL_URL") or "").strip().rstrip("/")
+if not PUBLIC_BASE_URL and not IS_PRODUCTION:
+    PUBLIC_BASE_URL = "http://127.0.0.1:8000"
 TIMEZONE = ZoneInfo(os.getenv("TIMEZONE", "America/Sao_Paulo"))
 DEFAULT_ADMIN_PASSWORD = "admin123"
 DEFAULT_OWNER_WHATSAPP = "5511999999999"

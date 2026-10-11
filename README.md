@@ -37,6 +37,17 @@ Clientes podem criar conta ou entrar pelos links públicos do site. A página ú
 
 O painel administrativo não tem link na navegação pública. A dona entra pela opção **Entrar** e não precisa digitar `/admin`.
 
+Novas contas precisam confirmar o e-mail por um link válido por 24 horas antes do primeiro acesso. Contas criadas antes desta confirmação continuam ativas. Para enviar sem domínio próprio e continuar no Render Free, o projeto inclui `scripts/email_sender.gs`, que usa o serviço de e-mail do Google Apps Script por HTTPS (o Render Free bloqueia portas SMTP).
+
+1. Abra <https://script.google.com> e crie um projeto.
+2. Copie o conteúdo de `scripts/email_sender.gs` para o editor e salve.
+3. No editor, execute `authorizeEmailSending` e autorize o envio de e-mails pela sua conta Google.
+4. Em **Configurações do projeto → Propriedades do script**, crie `EMAIL_WEBHOOK_SECRET` com um segredo aleatório de pelo menos 32 caracteres.
+5. Em **Implantar → Nova implantação → Aplicativo da Web**, escolha executar como você e permitir acesso a qualquer pessoa. Implante e copie a URL terminada em `/exec`.
+6. No Render, adicione `EMAIL_WEBHOOK_URL` com essa URL e `EMAIL_WEBHOOK_SECRET` com o mesmo segredo. `PUBLIC_BASE_URL` é opcional; o Render detecta a URL pública automaticamente.
+
+Guarde o segredo somente nas propriedades do Apps Script e nas variáveis de ambiente do Render, nunca no código ou no GitHub. Sem essas configurações, a conta fica pendente e a tela oferece o reenvio quando o serviço estiver configurado.
+
 ## Operação e limites
 
 - O banco padrão é SQLite. Mantenha uma única instância do serviço; para escalar para múltiplas instâncias, migre para PostgreSQL e configure um driver e migrações de esquema.
