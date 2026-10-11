@@ -1,8 +1,6 @@
 from datetime import date, datetime
 import hmac
 import secrets
-from threading import Lock
-import time
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -12,16 +10,12 @@ from sqlalchemy.orm import Session, joinedload
 from app.config import BASE_DIR
 from app.database import get_db
 from app.models import Appointment, BusinessHours, ClosedDate, Service
-from app.security import hash_password, verify_password
+from app.security import hash_password
 from app.settings_store import get_setting, set_setting
 
 templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
 router = APIRouter(prefix="/admin")
 WEEKDAYS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
-
-
-LOGIN_FAILURES: dict[str, list[float]] = {}
-LOGIN_LOCK = Lock()
 
 
 def csrf_value(request: Request) -> str:
@@ -44,47 +38,18 @@ def logged_in(request: Request) -> bool:
 
 def require_admin(request: Request):
     if not logged_in(request):
-        return RedirectResponse("/admin/login", status_code=303)
+        return RedirectResponse("/login", status_code=303)
     return None
 
 
 @router.get("/login", response_class=HTMLResponse)
-def login_form(request: Request, db: Session = Depends(get_db)):
-    if logged_in(request):
-        return RedirectResponse("/admin", status_code=303)
-    return templates.TemplateResponse(
-        request,
-        "admin/login.html",
-        {"salon_name": get_setting(db, "salon_name"), "error": None, "csrf_token": csrf_value(request)},
-    )
+def login_form():
+    return RedirectResponse("/login", status_code=303)
 
 
 @router.post("/login", response_class=HTMLResponse)
-def login(request: Request, password: str = Form(...), _csrf: None = Depends(validate_csrf), db: Session = Depends(get_db)):
-    client_ip = request.client.host if request.client else "unknown"
-    now = time.monotonic()
-    with LOGIN_LOCK:
-        failures = [failed_at for failed_at in LOGIN_FAILURES.get(client_ip, []) if now - failed_at < 900]
-        if len(failures) >= 10:
-            return HTMLResponse("Muitas tentativas. Aguarde 15 minutos antes de tentar novamente.", status_code=429)
-        if len(LOGIN_FAILURES) > 1000:
-            LOGIN_FAILURES.clear()
-        failures.append(now)
-        LOGIN_FAILURES[client_ip] = failures
-    stored = get_setting(db, "admin_password_hash")
-    if stored and verify_password(password, stored):
-        with LOGIN_LOCK:
-            LOGIN_FAILURES.pop(client_ip, None)
-        request.session.clear()
-        request.session["admin"] = True
-        csrf_value(request)
-        return RedirectResponse("/admin", status_code=303)
-    return templates.TemplateResponse(
-        request,
-        "admin/login.html",
-        {"salon_name": get_setting(db, "salon_name"), "error": "Senha incorreta.", "csrf_token": csrf_value(request)},
-        status_code=401,
-    )
+def legacy_login():
+    return RedirectResponse("/login", status_code=303)
 
 
 @router.post("/sair")

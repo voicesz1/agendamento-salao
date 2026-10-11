@@ -5,8 +5,8 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import BASE_DIR, IS_PRODUCTION, SECRET_KEY, SESSION_HTTPS_ONLY, SESSION_MAX_AGE, validate_runtime_config
-from app.database import Base, SessionLocal, engine
-from app.routers import admin, public
+from app.database import Base, SessionLocal, engine, migrate_customer_accounts
+from app.routers import admin, customers, public
 from app.seed import seed_if_needed
 
 
@@ -14,6 +14,7 @@ from app.seed import seed_if_needed
 async def lifespan(_app: FastAPI):
     validate_runtime_config()
     Base.metadata.create_all(bind=engine)
+    migrate_customer_accounts()
     db = SessionLocal()
     try:
         seed_if_needed(db)
@@ -58,6 +59,7 @@ async def security_headers(request: Request, call_next):
 
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "app" / "static")), name="static")
 app.include_router(public.router)
+app.include_router(customers.router)
 app.include_router(admin.router)
 
 

@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
@@ -39,3 +39,14 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def migrate_customer_accounts() -> None:
+    """Add the optional customer link to existing appointment tables."""
+    columns = {column["name"] for column in inspect(engine).get_columns("appointments")}
+    if "customer_id" in columns:
+        return
+    with engine.begin() as connection:
+        connection.execute(
+            text("ALTER TABLE appointments ADD COLUMN customer_id INTEGER REFERENCES customers(id)")
+        )

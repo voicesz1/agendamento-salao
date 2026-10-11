@@ -2,20 +2,25 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.config import BASE_DIR, TIMEZONE
 from app.database import get_db
-from app.models import Appointment, Service
+from app.models import Appointment, Customer, Service
 from app.settings_store import get_setting
 from app.slots import available_slots, now_local, slot_is_free
 from app.whatsapp import format_message, notify_owner, wa_me_link
 
 templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
 router = APIRouter()
+
+
+@router.get("/login", include_in_schema=False)
+def login_redirect():
+    return RedirectResponse("/cliente/login", status_code=303)
 
 
 def salon_context(db: Session) -> dict:
@@ -44,6 +49,7 @@ def agendar(request: Request, servico: int | None = None, db: Session = Depends(
     selected = db.get(Service, servico) if servico else None
     today = now_local().date()
     dates = [today + timedelta(days=i) for i in range(21)]
+    customer = db.get(Customer, request.session.get("customer_id")) if isinstance(request.session.get("customer_id"), int) else None
     return templates.TemplateResponse(
         request,
         "agendar.html",
@@ -53,6 +59,7 @@ def agendar(request: Request, servico: int | None = None, db: Session = Depends(
             "selected": selected,
             "dates": dates,
             "error": None,
+            "customer": customer,
         },
     )
 
@@ -72,6 +79,10 @@ def criar_agendamento(
         db.connection().exec_driver_sql("BEGIN IMMEDIATE")
     elif db.bind and db.bind.dialect.name == "postgresql":
         db.execute(text("SELECT pg_advisory_xact_lock(hashtext(:day))"), {"day": day})
+    customer = db.get(Customer, request.session.get("customer_id")) if isinstance(request.session.get("customer_id"), int) else None
+    if customer:
+        client_name = customer.name
+        client_phone = customer.phone
     service = db.get(Service, service_id)
     services = db.query(Service).filter(Service.active.is_(True)).order_by(Service.name).all()
     today = now_local().date()
@@ -87,6 +98,7 @@ def criar_agendamento(
                 "selected": service,
                 "dates": dates,
                 "error": message,
+                "customer": customer,
             },
             status_code=400,
         )
@@ -116,6 +128,7 @@ def criar_agendamento(
 
     end_dt = datetime.combine(chosen_day, start) + timedelta(minutes=service.duration_minutes)
     appointment = Appointment(
+        customer_id=customer.id if customer else None,
         service_id=service.id,
         client_name=client_name.strip(),
         client_phone=phone_digits,

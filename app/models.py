@@ -47,10 +47,24 @@ class Setting(Base):
     value: Mapped[str] = mapped_column(Text, default="")
 
 
+class Customer(Base):
+    __tablename__ = "customers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(120))
+    email: Mapped[str] = mapped_column(String(254), unique=True, index=True)
+    phone: Mapped[str] = mapped_column(String(30))
+    password_hash: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+
+    appointments: Mapped[list["Appointment"]] = relationship(back_populates="customer")
+
+
 class Appointment(Base):
     __tablename__ = "appointments"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id"), nullable=True)
     service_id: Mapped[int] = mapped_column(ForeignKey("services.id"))
     client_name: Mapped[str] = mapped_column(String(120))
     client_phone: Mapped[str] = mapped_column(String(30))
@@ -64,3 +78,4 @@ class Appointment(Base):
     whatsapp_error: Mapped[str] = mapped_column(Text, default="")
 
     service: Mapped[Service] = relationship(back_populates="appointments")
+    customer: Mapped[Customer | None] = relationship(back_populates="appointments")

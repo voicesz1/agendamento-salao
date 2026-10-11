@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Minha conta · {{ salon_name }}{% endblock %}
+{% block content %}
+<section class="narrow">
+  <p class="eyebrow">Área da cliente</p>
+  <h1>Olá, {{ customer.name }}</h1>
+  <p class="lede">Aqui você encontra os agendamentos feitos com esta conta.</p>
+
+  <form method="post" action="/cliente/sair">
+    <input type="hidden" name="csrf" value="{{ csrf_token }}">
+    <button class="linkish" type="submit">Sair da conta</button>
+  </form>
+
+  <h2>Histórico de agendamentos</h2>
+  {% if appointments %}
+    <div class="cards appointment-history">
+    {% for appointment in appointments %}
+      <article class="card">
+        <p><span class="badge {{ appointment.status }}">{{ appointment.status|capitalize }}</span></p>
+        <h3>{{ appointment.service.name }}</h3>
+        <p>{{ appointment.day.strftime('%d/%m/%Y') }} às {{ appointment.start_time.strftime('%H:%M') }}</p>
+        <p>R$ {{ '%.2f'|format(appointment.service.price) }}</p>
+      </article>
+    {% endfor %}
+    </div>
+  {% else %}
+    <p class="hint">Você ainda não tem agendamentos vinculados à sua conta.</p>
+  {% endif %}
+
+  <p><a class="btn" href="/agendar">Fazer um agendamento</a></p>
+</section>
+{% endblock %}

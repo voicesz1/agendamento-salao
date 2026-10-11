@@ -1,6 +1,6 @@
 # Agendamento Salão
 
-Aplicativo de agendamento para salão de unhas, com catálogo de serviços, horários disponíveis, painel administrativo e confirmação pelo WhatsApp.
+Aplicativo de agendamento para salão de unhas, com catálogo de serviços, horários disponíveis, contas de clientes com histórico e painel administrativo.
 
 ## Executar localmente
 
@@ -30,6 +30,12 @@ Os dados ficam no volume Docker `salao_data`. Faça backups regulares desse volu
 ## WhatsApp
 
 Em **Configurações**, cadastre o número da dona com DDI. Na confirmação do agendamento, o link abre o WhatsApp com a mensagem pronta para envio manual.
+
+## Contas de clientes
+
+Clientes podem criar conta ou entrar pelos links públicos do site. A página única de entrada reconhece a cliente pelo e-mail e a dona pelo usuário `dona` com a senha administrativa configurada; após o login, abre a área correspondente. Agendamentos feitos enquanto a cliente está conectada aparecem em **Minha conta**. Agendamentos antigos e reservas feitas sem login não são associados automaticamente a uma conta.
+
+O painel administrativo não tem link na navegação pública. A dona entra pela opção **Entrar** e não precisa digitar `/admin`.
 
 ## Operação e limites
 
