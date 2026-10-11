@@ -58,14 +58,18 @@ def seed_if_needed(db: Session) -> None:
         "salon_name": DEFAULT_SALON_NAME,
         "salon_tagline": "Unhas com cuidado, horário marcado",
         "owner_whatsapp": "" if IS_PRODUCTION else DEFAULT_OWNER_WHATSAPP,
-        "callmebot_apikey": "",
-        "webhook_url": "",
         "slot_interval_minutes": "30",
         "seeded_at": datetime.now(TIMEZONE).isoformat(),
     }
     for key, value in defaults.items():
         if db.get(Setting, key) is None:
             set_setting(db, key, value)
+
+    # Remove legacy integration credentials left by older versions.
+    for key in ("callmebot_apikey", "webhook_url"):
+        legacy_setting = db.get(Setting, key)
+        if legacy_setting:
+            db.delete(legacy_setting)
 
     owner_phone = db.get(Setting, "owner_whatsapp")
     if IS_PRODUCTION and owner_phone and owner_phone.value == DEFAULT_OWNER_WHATSAPP:

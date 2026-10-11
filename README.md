@@ -1,6 +1,6 @@
 # Agendamento Salão
 
-Aplicativo de agendamento para salão de unhas, com catálogo de serviços, horários disponíveis, painel administrativo e avisos opcionais pelo WhatsApp.
+Aplicativo de agendamento para salão de unhas, com catálogo de serviços, horários disponíveis, painel administrativo e confirmação pelo WhatsApp.
 
 ## Executar localmente
 
@@ -29,11 +29,11 @@ Os dados ficam no volume Docker `salao_data`. Faça backups regulares desse volu
 
 ## WhatsApp
 
-Em **Configurações**, cadastre o número da dona com DDI. Para enviar avisos automáticos, configure uma chave CallMeBot ou um webhook HTTPS. Sem integração, a confirmação oferece um link para abrir o WhatsApp com a mensagem pronta.
+Em **Configurações**, cadastre o número da dona com DDI. Na confirmação do agendamento, o link abre o WhatsApp com a mensagem pronta para envio manual.
 
 ## Operação e limites
 
 - O banco padrão é SQLite. Mantenha uma única instância do serviço; para escalar para múltiplas instâncias, migre para PostgreSQL e configure um driver e migrações de esquema.
 - A aplicação verifica `/healthz` para indicar disponibilidade e acesso ao banco.
 - O sistema protege a reserva simultânea do mesmo horário usando uma transação de escrita no SQLite.
-- A integração WhatsApp é opcional; falhas de notificação não desfazem um agendamento confirmado.
+- O aviso pelo WhatsApp é manual; o cliente pode abrir a conversa pela confirmação do agendamento.

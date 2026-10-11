@@ -293,8 +293,6 @@ def config_page(request: Request, db: Session = Depends(get_db)):
             "salon_name": get_setting(db, "salon_name"),
             "salon_tagline": get_setting(db, "salon_tagline"),
             "owner_whatsapp": get_setting(db, "owner_whatsapp"),
-            "callmebot_apikey": get_setting(db, "callmebot_apikey"),
-            "webhook_url": get_setting(db, "webhook_url"),
             "saved": False,
             "csrf_token": csrf_value(request),
             "error": request.query_params.get("erro"),
@@ -308,8 +306,6 @@ def save_config(
     salon_name: str = Form(...),
     salon_tagline: str = Form(""),
     owner_whatsapp: str = Form(""),
-    callmebot_apikey: str = Form(""),
-    webhook_url: str = Form(""),
     new_password: str = Form(""),
     _csrf: None = Depends(validate_csrf),
     db: Session = Depends(get_db),
@@ -318,13 +314,9 @@ def save_config(
         return redirect
     if len(salon_name.strip()) < 2 or (new_password.strip() and len(new_password.strip()) < 12):
         return RedirectResponse("/admin/config?erro=validacao", status_code=303)
-    if webhook_url.strip() and not webhook_url.strip().startswith("https://"):
-        return RedirectResponse("/admin/config?erro=webhook", status_code=303)
     set_setting(db, "salon_name", salon_name.strip())
     set_setting(db, "salon_tagline", salon_tagline.strip())
     set_setting(db, "owner_whatsapp", "".join(ch for ch in owner_whatsapp if ch in "0123456789"))
-    set_setting(db, "callmebot_apikey", callmebot_apikey.strip())
-    set_setting(db, "webhook_url", webhook_url.strip())
     if new_password.strip():
         set_setting(db, "admin_password_hash", hash_password(new_password.strip()))
     db.commit()
@@ -335,8 +327,6 @@ def save_config(
             "salon_name": salon_name.strip(),
             "salon_tagline": salon_tagline.strip(),
             "owner_whatsapp": "".join(ch for ch in owner_whatsapp if ch in "0123456789"),
-            "callmebot_apikey": callmebot_apikey.strip(),
-            "webhook_url": webhook_url.strip(),
             "saved": True,
             "csrf_token": csrf_value(request),
         },
