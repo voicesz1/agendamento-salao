@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ salon_name }} · Serviços{% endblock %}
+{% block content %}
+<section class="hero">
+  <p class="eyebrow">Salão de unhas</p>
+  <h1>{{ salon_name }}</h1>
+  <p class="lede">{{ salon_tagline }}</p>
+  <a class="btn" href="/agendar">Agendar horário</a>
+</section>
+
+{% for category, services in grouped.items() %}
+<section class="catalog">
+  <h2>{{ category }}</h2>
+  <div class="cards">
+    {% for service in services %}
+    <article class="card">
+      <div class="card-top">
+        <h3>{{ service.name }}</h3>
+        <p class="price">R$ {{ '%.2f'|format(service.price) }}</p>
+      </div>
+      <p>{{ service.description }}</p>
+      <p class="meta">{{ service.duration_minutes }} min</p>
+      <a class="btn ghost" href="/agendar?servico={{ service.id }}">Escolher e agendar</a>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Agendar · {{ salon_name }}{% endblock %}
+{% block content %}
+<section class="narrow">
+  <p class="eyebrow">Reserva</p>
+  <h1>Escolha o serviço, o dia e o horário</h1>
+  <p class="lede">Os horários seguem o funcionamento do salão e já descontam os agendamentos confirmados.</p>
+
+  {% if error %}
+  <p class="alert">{{ error }}</p>
+  {% endif %}
+
+  <form method="post" action="/agendar" class="booking" id="booking-form">
+    <label>
+      Serviço
+      <select name="service_id" id="service_id" required>
+        <option value="">Selecione</option>
+        {% for service in services %}
+        <option value="{{ service.id }}"
+          data-duration="{{ service.duration_minutes }}"
+          {% if selected and selected.id == service.id %}selected{% endif %}>
+          {{ service.name }} — R$ {{ '%.2f'|format(service.price) }} ({{ service.duration_minutes }} min)
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>
+      Dia
+      <select name="day" id="day" required>
+        <option value="">Selecione o dia</option>
+        {% for d in dates %}
+        <option value="{{ d.isoformat() }}">{{ d.strftime('%d/%m/%Y') }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <fieldset>
+      <legend>Horário disponível</legend>
+      <div id="slots" class="slots">
+        <p class="hint">Selecione o serviço e o dia para ver os horários.</p>
+      </div>
+      <input type="hidden" name="start_time" id="start_time" required>
+    </fieldset>
+
+    <label>
+      Seu nome
+      <input type="text" name="client_name" required maxlength="120" placeholder="Nome completo">
+    </label>
+    <label>
+      WhatsApp
+      <input type="tel" name="client_phone" required maxlength="30" placeholder="(11) 99999-9999">
+    </label>
+    <label>
+      Observação (opcional)
+      <textarea name="notes" rows="3" placeholder="Preferência de formato, cor, etc."></textarea>
+    </label>
+
+    <button class="btn" type="submit">Confirmar agendamento</button>
+  </form>
+</section>
+<script src="/static/js/booking.js"></script>
+{% endblock %}

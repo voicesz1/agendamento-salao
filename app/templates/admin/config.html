@@ -1,0 +1,27 @@
+{% extends "admin/layout.html" %}
+{% block title %}Configurações{% endblock %}
+{% block content %}
+{% if error %}<p class="alert">Confira o nome, a nova senha e se o webhook começa com HTTPS.</p>{% endif %}
+<h1>Configurações</h1>
+{% if saved %}<p class="ok">Alterações salvas.</p>{% endif %}
+
+<form method="post" action="/admin/config" class="booking">
+  <input type="hidden" name="csrf" value="{{ csrf_token }}">
+  <label>Nome do salão <input name="salon_name" value="{{ salon_name }}" required></label>
+  <label>Frase de apresentação <input name="salon_tagline" value="{{ salon_tagline }}"></label>
+  <label>WhatsApp da dona (com DDI, ex: 5511999999999)
+    <input name="owner_whatsapp" value="{{ owner_whatsapp }}" placeholder="5511...">
+  </label>
+  <label>Chave CallMeBot (envio automático)
+    <input name="callmebot_apikey" value="{{ callmebot_apikey }}">
+  </label>
+  <p class="hint">Para o CallMeBot: adicione o bot no WhatsApp, envie o código e cole a API key aqui. Sem a chave, o cliente ainda pode abrir o WhatsApp na confirmação.</p>
+  <label>Webhook opcional (POST JSON com phone, text, appointment_id)
+    <input name="webhook_url" value="{{ webhook_url }}" placeholder="https://...">
+  </label>
+  <label>Nova senha do painel (deixe em branco para manter)
+    <input type="password" name="new_password">
+  </label>
+  <button class="btn" type="submit">Salvar</button>
+</form>
+{% endblock %}

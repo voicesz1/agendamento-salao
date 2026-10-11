@@ -1,0 +1,57 @@
+{% extends "admin/layout.html" %}
+{% block title %}Agendamentos{% endblock %}
+{% block content %}
+<h1>Agendamentos</h1>
+<div class="filters">
+  <a class="{% if status == 'todos' %}on{% endif %}" href="/admin">Todos ({{ counts.todos }})</a>
+  <a class="{% if status == 'confirmado' %}on{% endif %}" href="/admin?status=confirmado">Confirmados ({{ counts.confirmado }})</a>
+  <a class="{% if status == 'cancelado' %}on{% endif %}" href="/admin?status=cancelado">Cancelados ({{ counts.cancelado }})</a>
+</div>
+
+{% if not appointments %}
+<p class="hint">Nenhum agendamento neste filtro.</p>
+{% else %}
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr>
+      <th>Data</th>
+      <th>Horário</th>
+      <th>Serviço</th>
+      <th>Cliente</th>
+      <th>Status</th>
+      <th>WhatsApp</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in appointments %}
+    <tr class="{{ item.status }}">
+      <td>{{ item.day.strftime('%d/%m/%Y') }}</td>
+      <td>{{ item.start_time.strftime('%H:%M') }}–{{ item.end_time.strftime('%H:%M') }}</td>
+      <td>{{ item.service.name }}<br><small>R$ {{ '%.2f'|format(item.service.price) }}</small></td>
+      <td>{{ item.client_name }}<br><small>{{ item.client_phone }}</small></td>
+      <td><span class="badge {{ item.status }}">{{ item.status }}</span></td>
+      <td>{% if item.whatsapp_sent %}enviado{% else %}pendente{% endif %}</td>
+      <td>
+        {% if item.status == 'confirmado' %}
+        <form method="post" action="/admin/agendamentos/{{ item.id }}/status">
+          <input type="hidden" name="csrf" value="{{ csrf_token }}">
+          <input type="hidden" name="status" value="cancelado">
+          <button class="linkish" type="submit">Cancelar</button>
+        </form>
+        {% else %}
+        <form method="post" action="/admin/agendamentos/{{ item.id }}/status">
+          <input type="hidden" name="csrf" value="{{ csrf_token }}">
+          <input type="hidden" name="status" value="confirmado">
+          <button class="linkish" type="submit">Reativar</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% endblock %}

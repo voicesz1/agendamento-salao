@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Entrar · {{ salon_name }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+<main class="narrow login-box">
+  <p class="eyebrow">Área da dona</p>
+  <h1>{{ salon_name }}</h1>
+  {% if error %}<p class="alert">{{ error }}</p>{% endif %}
+  <form method="post" action="/admin/login" class="booking">
+    <input type="hidden" name="csrf" value="{{ csrf_token }}">
+    <label>
+      Senha
+      <input type="password" name="password" required>
+    </label>
+    <button class="btn" type="submit">Entrar</button>
+  </form>
+</main>
+</body>
+</html>
