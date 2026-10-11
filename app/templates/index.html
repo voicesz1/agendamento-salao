@@ -2,10 +2,20 @@
 {% block title %}{{ salon_name }} · Serviços{% endblock %}
 {% block content %}
 <section class="hero">
+  <div class="hero-copy">
   <p class="eyebrow">Salão de unhas</p>
   <h1>{{ salon_name }}</h1>
+  {% if salon_tagline %}
   <p class="lede">{{ salon_tagline }}</p>
+  {% else %}
+  <p class="lede">Seu momento de cuidado, com a tranquilidade de um horário reservado para você.</p>
+  {% endif %}
   <a class="btn" href="/agendar">Agendar horário</a>
+  </div>
+  <div class="hero-art" aria-hidden="true">
+    <div class="hero-orb"></div>
+    <div class="hero-seal">✦<span>beleza &amp; cuidado</span></div>
+  </div>
 </section>
 
 {% for category, services in grouped.items() %}
