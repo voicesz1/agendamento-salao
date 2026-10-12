@@ -1,10 +1,10 @@
-const CACHE_NAME = "salon-static-v1";
+const CACHE_NAME = "salon-static-v2";
 const STATIC_ASSETS = [
-  "/static/css/style.css",
+  "/static/css/style.css?v=2026-10-11-atelier",
   "/static/js/booking.js",
   "/static/js/pwa.js",
-  "/static/icons/icon-192.png",
-  "/static/icons/icon-512.png",
+  "/static/icons/icon-192.png?v=2",
+  "/static/icons/icon-512.png?v=2",
 ];
 
 self.addEventListener("install", (event) => {

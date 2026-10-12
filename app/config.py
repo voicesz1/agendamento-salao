@@ -19,6 +19,8 @@ SESSION_MAX_AGE = int(os.getenv("SESSION_MAX_AGE", "28800"))
 EMAIL_WEBHOOK_URL = os.getenv("EMAIL_WEBHOOK_URL", "").strip()
 EMAIL_WEBHOOK_SECRET = os.getenv("EMAIL_WEBHOOK_SECRET", "").strip()
 PUBLIC_BASE_URL = (os.getenv("PUBLIC_BASE_URL") or os.getenv("RENDER_EXTERNAL_URL") or "").strip().rstrip("/")
+ANDROID_APP_PACKAGE = os.getenv("ANDROID_APP_PACKAGE", "com.atelierdasunhas.agendamento").strip()
+ANDROID_APP_SHA256_CERT_FINGERPRINT = os.getenv("ANDROID_APP_SHA256_CERT_FINGERPRINT", "").strip().upper()
 if not PUBLIC_BASE_URL and not IS_PRODUCTION:
     PUBLIC_BASE_URL = "http://127.0.0.1:8000"
 TIMEZONE = ZoneInfo(os.getenv("TIMEZONE", "America/Sao_Paulo"))

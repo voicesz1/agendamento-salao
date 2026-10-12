@@ -1,11 +1,20 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.config import BASE_DIR, IS_PRODUCTION, SECRET_KEY, SESSION_HTTPS_ONLY, SESSION_MAX_AGE, validate_runtime_config
+from app.config import (
+    ANDROID_APP_PACKAGE,
+    ANDROID_APP_SHA256_CERT_FINGERPRINT,
+    BASE_DIR,
+    IS_PRODUCTION,
+    SECRET_KEY,
+    SESSION_HTTPS_ONLY,
+    SESSION_MAX_AGE,
+    validate_runtime_config,
+)
 from app.database import Base, SessionLocal, engine, migrate_customer_accounts
 from app.routers import admin, customers, public
 from app.seed import seed_if_needed
@@ -67,6 +76,32 @@ def service_worker():
         BASE_DIR / "app" / "static" / "sw.js",
         media_type="application/javascript",
         headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"},
+    )
+
+
+@app.get("/.well-known/assetlinks.json", include_in_schema=False)
+def android_asset_links():
+    fingerprints = [value.strip().upper() for value in ANDROID_APP_SHA256_CERT_FINGERPRINT.split(",") if value.strip()]
+    if not fingerprints:
+        return JSONResponse(content=[])
+    for fingerprint in fingerprints:
+        parts = fingerprint.split(":")
+        if len(parts) != 32 or any(len(part) != 2 or any(char not in "0123456789ABCDEF" for char in part) for part in parts):
+            return JSONResponse(content={"error": "ANDROID_APP_SHA256_CERT_FINGERPRINT inválida."}, status_code=503)
+    if not ANDROID_APP_PACKAGE:
+        return JSONResponse(content={"error": "ANDROID_APP_SHA256_CERT_FINGERPRINT inválida."}, status_code=503)
+    return JSONResponse(
+        content=[
+            {
+                "relation": ["delegate_permission/common.handle_all_urls"],
+                "target": {
+                    "namespace": "android_app",
+                    "package_name": ANDROID_APP_PACKAGE,
+                    "sha256_cert_fingerprints": fingerprints,
+                },
+            }
+        ],
+        headers={"Cache-Control": "public, max-age=300"},
     )
 
 

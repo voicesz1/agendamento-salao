@@ -52,7 +52,9 @@ Guarde o segredo somente nas propriedades do Apps Script e nas variáveis de amb
 
 ### Instalar no Android
 
-O site pode ser instalado como aplicativo PWA sem publicar na Play Store. Depois de publicar as alterações no Render, abra o endereço HTTPS do salão no Chrome para Android. O botão **Instalar app** pode aparecer no menu do site; se não aparecer, use o menu ⋮ do Chrome → **Instalar app** ou **Adicionar à tela inicial**. O app usa o mesmo site e precisa de internet para consultar horários e fazer agendamentos. Por segurança, páginas de conta, login e agendamento não são armazenadas para uso offline.
+O site pode ser instalado como aplicativo PWA sem publicar na Play Store. Quando o Chrome considerar o site instalável, uma janela oferecerá a instalação; a pessoa precisa tocar em **Instalar agora** para abrir a confirmação nativa do Android. O botão **Instalar app** também fica disponível no cabeçalho. Se a janela não aparecer, use o menu ⋮ do Chrome → **Instalar app** ou **Adicionar à tela inicial**. O app usa o mesmo site e precisa de internet para consultar horários e fazer agendamentos. Por segurança, páginas de conta, login e agendamento não são armazenadas para uso offline.
+
+Para gerar a versão para a Play Store, consulte [android/README.md](android/README.md). Ela usa uma Trusted Web Activity vinculada ao mesmo site.
 
 - O banco padrão é SQLite. Mantenha uma única instância do serviço; para escalar para múltiplas instâncias, migre para PostgreSQL e configure um driver e migrações de esquema.
 - A aplicação verifica `/healthz` para indicar disponibilidade e acesso ao banco.

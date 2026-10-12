@@ -10,17 +10,29 @@
   {% else %}
   <p class="lede">Seu momento de cuidado, com a tranquilidade de um horário reservado para você.</p>
   {% endif %}
-  <a class="btn" href="/agendar">Agendar horário</a>
+    <div class="hero-actions">
+      <a class="btn" href="/agendar">Escolher meu horário <span aria-hidden="true">→</span></a>
+      <a class="hero-secondary" href="#servicos">Conhecer os serviços</a>
+    </div>
+    <div class="hero-highlights" aria-label="Vantagens do agendamento online">
+      <span>Horários disponíveis</span>
+      <span>Histórico na sua conta</span>
+    </div>
   </div>
   <div class="hero-art" aria-hidden="true">
     <div class="hero-orb"></div>
-    <div class="hero-seal">✦<span>beleza &amp; cuidado</span></div>
+    <div class="hero-seal"><strong>A</strong><span>beleza &amp; cuidado</span></div>
   </div>
 </section>
 
+<section class="catalog-intro" id="servicos">
+  <p class="eyebrow">Um tempo só seu</p>
+  <h2>Escolha seu cuidado</h2>
+  <p>Veja os serviços e encontre o melhor horário para você.</p>
+</section>
 {% for category, services in grouped.items() %}
 <section class="catalog">
-  <h2>{{ category }}</h2>
+  <div class="catalog-heading"><span class="catalog-marker" aria-hidden="true"></span><h2>{{ category }}</h2></div>
   <div class="cards">
     {% for service in services %}
     <article class="card">
