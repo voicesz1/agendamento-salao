@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=2026-10-11-atelier">
+  <link rel="stylesheet" href="/static/css/style.css?v=2026-10-11-atelier-install">
 </head>
 <body>
   <header class="top">
@@ -27,7 +27,7 @@
       {% else %}
       <a href="/login">Entrar</a>
       {% endif %}
-      <button class="install-app" id="install-app" type="button" hidden>Instalar app</button>
+      <button class="install-app" id="install-app" type="button">Instalar app</button>
     </nav>
   </header>
   <main>
@@ -46,7 +46,7 @@
       <img class="install-dialog-mark" src="/static/icons/icon-192.png?v=2" alt="">
       <p class="eyebrow">Aplicativo do salão</p>
       <h2 id="install-dialog-title">Instale no seu celular</h2>
-      <p>Tenha o agendamento do salão na tela inicial para acessar com mais praticidade.</p>
+      <p id="install-dialog-description">Tenha o agendamento do salão na tela inicial para acessar com mais praticidade.</p>
       <div class="install-dialog-actions">
         <button class="btn" id="install-dialog-confirm" type="button">Instalar agora</button>
         <button class="btn ghost" id="install-dialog-later" type="button">Agora não</button>
