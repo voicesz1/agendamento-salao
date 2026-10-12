@@ -1,6 +1,6 @@
-const CACHE_NAME = "salon-static-v3";
+const CACHE_NAME = "salon-static-v4";
 const STATIC_ASSETS = [
-  "/static/css/style.css?v=2026-10-11-atelier-install",
+  "/static/css/style.css?v=2026-10-12-apk-download",
   "/static/js/booking.js",
   "/static/js/pwa.js",
   "/static/icons/icon-192.png?v=2",
@@ -27,6 +27,7 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET" || url.origin !== self.location.origin || !url.pathname.startsWith("/static/")) {
     return;
   }
+  if (url.pathname === "/static/downloads/agendamento-salao.apk") return;
 
   event.respondWith(
     caches.match(request).then((cached) => {

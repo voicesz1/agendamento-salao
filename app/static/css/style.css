@@ -461,7 +461,7 @@ main { width: min(100%, 100rem); margin-inline: auto; padding: clamp(1.5rem, 4vw
 .hero-actions .btn span { margin-left: 0.55rem; font-size: 1.1rem; }
 .hero-secondary { color: rgb(255 253 248 / 88%); font-weight: 600; text-decoration-color: rgb(232 215 170 / 65%); text-underline-offset: 5px; }
 .hero-secondary:hover { color: var(--gold-light); }
-.hero-install-button { display: inline-flex; align-items: center; gap: 0.78rem; max-width: 27rem; margin-top: 1.25rem; padding: 0.72rem 0.95rem; border: 1px solid rgb(232 215 170 / 30%); border-radius: 0.95rem; color: #fffefa; background: rgb(255 255 255 / 7%); cursor: pointer; text-align: left; transition: transform 180ms ease, border-color 180ms ease, background 180ms ease; }
+.hero-install-button { display: inline-flex; align-items: center; gap: 0.78rem; max-width: 27rem; margin-top: 1.25rem; padding: 0.72rem 0.95rem; border: 1px solid rgb(232 215 170 / 30%); border-radius: 0.95rem; color: #fffefa; background: rgb(255 255 255 / 7%); cursor: pointer; text-align: left; text-decoration: none; transition: transform 180ms ease, border-color 180ms ease, background 180ms ease; }
 .hero-install-button:hover { transform: translateY(-2px); border-color: rgb(232 215 170 / 72%); background: rgb(255 255 255 / 12%); }
 .hero-install-button > span:nth-child(2) { display: grid; gap: 0.14rem; }
 .hero-install-button strong { font-size: 0.93rem; }

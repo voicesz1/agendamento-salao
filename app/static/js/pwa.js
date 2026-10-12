@@ -6,7 +6,6 @@ if ("serviceWorker" in navigator) {
 
 let installPrompt = null;
 const installButton = document.getElementById("install-app");
-const homeInstallButton = document.getElementById("install-app-home");
 const installDialog = document.getElementById("install-dialog");
 const installDescription = document.getElementById("install-dialog-description");
 const installConfirmButton = document.getElementById("install-dialog-confirm");
@@ -19,7 +18,6 @@ function appIsInstalled() {
 function hideInstallControlsWhenInstalled() {
   if (!appIsInstalled()) return;
   if (installButton) installButton.hidden = true;
-  if (homeInstallButton) homeInstallButton.hidden = true;
 }
 
 hideInstallControlsWhenInstalled();
@@ -83,7 +81,6 @@ async function promptToInstall() {
 }
 
 installButton?.addEventListener("click", promptToInstall);
-homeInstallButton?.addEventListener("click", promptToInstall);
 installConfirmButton?.addEventListener("click", () => {
   if (installPrompt) promptToInstall();
   else installDialog?.close();
