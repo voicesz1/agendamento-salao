@@ -88,7 +88,8 @@ def android_asset_links():
         parts = fingerprint.split(":")
         if len(parts) != 32 or any(len(part) != 2 or any(char not in "0123456789ABCDEF" for char in part) for part in parts):
             return JSONResponse(content={"error": "ANDROID_APP_SHA256_CERT_FINGERPRINT inválida."}, status_code=503)
-    if not ANDROID_APP_PACKAGE:
+    package_names = [value.strip() for value in ANDROID_APP_PACKAGE.split(",") if value.strip()]
+    if not package_names:
         return JSONResponse(content={"error": "ANDROID_APP_SHA256_CERT_FINGERPRINT inválida."}, status_code=503)
     return JSONResponse(
         content=[
@@ -96,10 +97,11 @@ def android_asset_links():
                 "relation": ["delegate_permission/common.handle_all_urls"],
                 "target": {
                     "namespace": "android_app",
-                    "package_name": ANDROID_APP_PACKAGE,
+                    "package_name": package_name,
                     "sha256_cert_fingerprints": fingerprints,
                 },
             }
+            for package_name in package_names
         ],
         headers={"Cache-Control": "public, max-age=300"},
     )

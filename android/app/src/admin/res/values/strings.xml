@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Admin do Salão</string>
+    <string name="launcher_name">Admin do Salão</string>
+    <string name="launch_url">https://agendamento-salao-e8gw.onrender.com/admin/login</string>
+</resources>

@@ -12,6 +12,17 @@ android {
     namespace "com.atelierdasunhas.agendamento"
     compileSdk 36
 
+    flavorDimensions += "perfil"
+    productFlavors {
+        cliente {
+            dimension "perfil"
+        }
+        admin {
+            dimension "perfil"
+            applicationIdSuffix ".admin"
+        }
+    }
+
     aaptOptions {
         cruncherEnabled = false
     }
