@@ -1,6 +1,5 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
-from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -10,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.config import BASE_DIR, TIMEZONE
 from app.database import get_db
-from app.models import Appointment, Customer, Service
+from app.models import Appointment, Service
 from app.settings_store import get_setting
 from app.slots import available_slots, now_local, slot_is_free
 from app.whatsapp import format_message, notify_owner, wa_me_link
@@ -20,12 +19,8 @@ router = APIRouter()
 
 
 @router.get("/login", include_in_schema=False)
-def login_redirect(request: Request):
-    next_path = request.query_params.get("next")
-    target = "/cliente/login"
-    if next_path == "/agendar":
-        target += "?" + urlencode({"next": next_path})
-    return RedirectResponse(target, status_code=303)
+def login_redirect():
+    return RedirectResponse("/admin/login", status_code=303)
 
 
 def salon_context(db: Session) -> dict:
@@ -50,10 +45,6 @@ def home(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/agendar", response_class=HTMLResponse)
 def agendar(request: Request, servico: int | None = None, db: Session = Depends(get_db)):
-    customer = db.get(Customer, request.session.get("customer_id")) if isinstance(request.session.get("customer_id"), int) else None
-    if request.session.get("customer_id") and (not customer or not customer.email_verified_at):
-        request.session.pop("customer_id", None)
-        customer = None
     services = db.query(Service).filter(Service.active.is_(True)).order_by(Service.name).all()
     selected = db.get(Service, servico) if servico else None
     today = now_local().date()
@@ -67,9 +58,8 @@ def agendar(request: Request, servico: int | None = None, db: Session = Depends(
             "selected": selected,
             "dates": dates,
             "error": None,
-            "customer": customer,
-            "client_name": customer.name if customer else "",
-            "client_phone": customer.phone if customer else "",
+            "client_name": "",
+            "client_phone": "",
         },
     )
 
@@ -85,10 +75,6 @@ def criar_agendamento(
     notes: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    customer = db.get(Customer, request.session.get("customer_id")) if isinstance(request.session.get("customer_id"), int) else None
-    if request.session.get("customer_id") and (not customer or not customer.email_verified_at):
-        request.session.pop("customer_id", None)
-        customer = None
     if db.bind and db.bind.dialect.name == "sqlite":
         db.connection().exec_driver_sql("BEGIN IMMEDIATE")
     elif db.bind and db.bind.dialect.name == "postgresql":
@@ -108,7 +94,6 @@ def criar_agendamento(
                 "selected": service,
                 "dates": dates,
                 "error": message,
-                "customer": customer,
                 "client_name": client_name,
                 "client_phone": client_phone,
             },
@@ -140,7 +125,7 @@ def criar_agendamento(
 
     end_dt = datetime.combine(chosen_day, start) + timedelta(minutes=service.duration_minutes)
     appointment = Appointment(
-        customer_id=customer.id if customer else None,
+        customer_id=None,
         service_id=service.id,
         client_name=client_name.strip(),
         client_phone=phone_digits,

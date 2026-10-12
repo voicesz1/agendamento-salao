@@ -20,14 +20,9 @@
       <span class="brand-copy"><span>{{ salon_name }}</span><small>ESTÚDIO DE UNHAS · BELEZA E CUIDADO</small></span>
     </a>
     <nav aria-label="Navegação principal">
-      <a href="/">Catálogo</a>
-      <a href="/agendar">Agendar</a>
-      {% if request.session.get('customer_id') %}
-      <a href="/cliente/minha-conta">Minha conta</a>
-      {% else %}
-      <a href="/cliente/login">Área do cliente</a>
-      {% endif %}
-      <a href="/admin/login">Administração</a>
+      <a href="/">Loja</a>
+      <a href="/agendar">Agendamentos</a>
+      <a href="/admin/login">Login do admin</a>
       <button class="install-app" id="install-app" type="button">Instalar app</button>
     </nav>
   </header>

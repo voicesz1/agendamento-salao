@@ -16,7 +16,7 @@ from app.config import (
     validate_runtime_config,
 )
 from app.database import Base, SessionLocal, engine, migrate_customer_accounts
-from app.routers import admin, customers, public
+from app.routers import admin, public
 from app.seed import seed_if_needed
 
 
@@ -106,7 +106,6 @@ def android_asset_links():
 
 
 app.include_router(public.router)
-app.include_router(customers.router)
 app.include_router(admin.router)
 
 

@@ -5,9 +5,7 @@
   <p class="eyebrow">Tudo certo</p>
   <h1>Agendamento confirmado</h1>
   <p class="lede">{{ appointment.client_name }}, seu horário está reservado.</p>
-  {% if not appointment.customer_id %}
-  <p class="hint">Este agendamento foi feito sem conta e não aparecerá no histórico da área do cliente.</p>
-  {% endif %}
+  <p class="hint">Guarde a confirmação do dia e do horário para consultar seu agendamento.</p>
 
   <dl class="summary">
     <div><dt>Serviço</dt><dd>{{ appointment.service.name }}</dd></div>

@@ -5,10 +5,6 @@
   <p class="eyebrow">Reserva</p>
   <h1>Escolha o serviço, o dia e o horário</h1>
   <p class="lede">Agende sem criar conta: basta informar seu nome e WhatsApp. Os horários disponíveis já descontam as reservas confirmadas.</p>
-  {% if customer %}
-  <p class="ok">Agendamento vinculado à sua conta. Você poderá consultá-lo em Minha conta.</p>
-  {% endif %}
-
   {% if error %}
   <p class="alert">{{ error }}</p>
   {% endif %}
