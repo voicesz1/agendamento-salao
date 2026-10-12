@@ -31,7 +31,7 @@
   <form method="post" action="/cliente/login" class="booking">
     <input type="hidden" name="csrf" value="{{ csrf_token }}">
     <input type="hidden" name="next_path" value="{{ next_path|default('') }}">
-    <label>E-mail ou usuário<input type="text" name="username_or_email" value="{{ username_or_email|default('') }}" required autocomplete="username" placeholder="Digite seu e-mail ou usuário"></label>
+    <label>E-mail<input type="email" name="username_or_email" value="{{ username_or_email|default('') }}" required autocomplete="username" placeholder="Digite seu e-mail"></label>
     <label>Senha<input type="password" name="password" required autocomplete="current-password"></label>
     <button class="btn" type="submit">Entrar</button>
   </form>

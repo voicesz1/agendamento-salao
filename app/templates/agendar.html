@@ -4,7 +4,7 @@
 <section class="narrow">
   <p class="eyebrow">Reserva</p>
   <h1>Escolha o serviço, o dia e o horário</h1>
-  <p class="lede">Os horários seguem o funcionamento do salão e já descontam os agendamentos confirmados.</p>
+  <p class="lede">Agende sem criar conta: basta informar seu nome e WhatsApp. Os horários disponíveis já descontam as reservas confirmadas.</p>
   {% if customer %}
   <p class="ok">Agendamento vinculado à sua conta. Você poderá consultá-lo em Minha conta.</p>
   {% endif %}
@@ -48,11 +48,11 @@
 
     <label>
       Seu nome
-      <input type="text" name="client_name" value="{{ customer.name }}" required maxlength="120" readonly>
+      <input type="text" name="client_name" value="{{ client_name|default('') }}" required maxlength="120" autocomplete="name">
     </label>
     <label>
       WhatsApp
-      <input type="tel" name="client_phone" value="{{ customer.phone }}" required maxlength="30" readonly>
+      <input type="tel" name="client_phone" value="{{ client_phone|default('') }}" required maxlength="30" autocomplete="tel" placeholder="(11) 99999-9999">
     </label>
     <label>
       Observação (opcional)

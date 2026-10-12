@@ -212,15 +212,10 @@ def login(
     identifier = username_or_email.strip().lower()
     customer = db.query(Customer).filter(Customer.email == identifier).first()
     valid_customer = bool(customer and verify_password(password, customer.password_hash))
-    admin_password_hash = get_setting(db, "admin_password_hash")
-    is_owner = identifier == "dona" and admin_password_hash and verify_password(password, admin_password_hash)
-    if is_owner or (valid_customer and customer.email_verified_at):
+    if valid_customer and customer.email_verified_at:
         with LOGIN_LOCK:
             LOGIN_FAILURES.pop(client_ip, None)
         request.session.clear()
-        if is_owner:
-            request.session["admin"] = True
-            return RedirectResponse("/admin", status_code=303)
         request.session["customer_id"] = customer.id
         csrf_value(request)
         return RedirectResponse(next_path or "/cliente/minha-conta", status_code=303)

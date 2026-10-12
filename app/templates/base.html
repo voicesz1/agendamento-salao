@@ -25,8 +25,9 @@
       {% if request.session.get('customer_id') %}
       <a href="/cliente/minha-conta">Minha conta</a>
       {% else %}
-      <a href="/login">Entrar</a>
+      <a href="/cliente/login">Área do cliente</a>
       {% endif %}
+      <a href="/admin/login">Administração</a>
       <button class="install-app" id="install-app" type="button">Instalar app</button>
     </nav>
   </header>

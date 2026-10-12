@@ -51,9 +51,9 @@ def home(request: Request, db: Session = Depends(get_db)):
 @router.get("/agendar", response_class=HTMLResponse)
 def agendar(request: Request, servico: int | None = None, db: Session = Depends(get_db)):
     customer = db.get(Customer, request.session.get("customer_id")) if isinstance(request.session.get("customer_id"), int) else None
-    if not customer or not customer.email_verified_at:
+    if request.session.get("customer_id") and (not customer or not customer.email_verified_at):
         request.session.pop("customer_id", None)
-        return RedirectResponse("/login?next=/agendar", status_code=303)
+        customer = None
     services = db.query(Service).filter(Service.active.is_(True)).order_by(Service.name).all()
     selected = db.get(Service, servico) if servico else None
     today = now_local().date()
@@ -68,6 +68,8 @@ def agendar(request: Request, servico: int | None = None, db: Session = Depends(
             "dates": dates,
             "error": None,
             "customer": customer,
+            "client_name": customer.name if customer else "",
+            "client_phone": customer.phone if customer else "",
         },
     )
 
@@ -84,15 +86,13 @@ def criar_agendamento(
     db: Session = Depends(get_db),
 ):
     customer = db.get(Customer, request.session.get("customer_id")) if isinstance(request.session.get("customer_id"), int) else None
-    if not customer or not customer.email_verified_at:
+    if request.session.get("customer_id") and (not customer or not customer.email_verified_at):
         request.session.pop("customer_id", None)
-        return RedirectResponse("/login?next=/agendar", status_code=303)
+        customer = None
     if db.bind and db.bind.dialect.name == "sqlite":
         db.connection().exec_driver_sql("BEGIN IMMEDIATE")
     elif db.bind and db.bind.dialect.name == "postgresql":
         db.execute(text("SELECT pg_advisory_xact_lock(hashtext(:day))"), {"day": day})
-    client_name = customer.name
-    client_phone = customer.phone
     service = db.get(Service, service_id)
     services = db.query(Service).filter(Service.active.is_(True)).order_by(Service.name).all()
     today = now_local().date()
@@ -109,6 +109,8 @@ def criar_agendamento(
                 "dates": dates,
                 "error": message,
                 "customer": customer,
+                "client_name": client_name,
+                "client_phone": client_phone,
             },
             status_code=400,
         )
@@ -138,7 +140,7 @@ def criar_agendamento(
 
     end_dt = datetime.combine(chosen_day, start) + timedelta(minutes=service.duration_minutes)
     appointment = Appointment(
-        customer_id=customer.id,
+        customer_id=customer.id if customer else None,
         service_id=service.id,
         client_name=client_name.strip(),
         client_phone=phone_digits,
