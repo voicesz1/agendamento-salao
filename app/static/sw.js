@@ -1,10 +1,13 @@
-const CACHE_NAME = "salon-static-v4";
+const CACHE_NAME = "salon-static-v10-service-photos";
 const STATIC_ASSETS = [
-  "/static/css/style.css?v=2026-10-12-apk-download",
-  "/static/js/booking.js",
-  "/static/js/pwa.js",
-  "/static/icons/icon-192.png?v=2",
-  "/static/icons/icon-512.png?v=2",
+  "/static/css/style.css?v=2026-10-16-service-photos",
+  "/static/js/theme.js?v=2026-10-16-dark",
+  "/static/js/booking.js?v=2026-10-16-pix-v2",
+  "/static/js/payment.js?v=2026-10-16-pix-v2",
+  "/static/js/pwa.js?v=2026-10-16-wine-v2",
+  "/static/icons/brand-wine.svg",
+  "/static/icons/icon-wine-192.png",
+  "/static/icons/icon-wine-512.png",
 ];
 
 self.addEventListener("install", (event) => {

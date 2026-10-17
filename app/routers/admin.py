@@ -1,18 +1,20 @@
 from datetime import date, datetime
 import hmac
-import secrets
 import time
 from threading import Lock
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session, joinedload
 
-from app.config import BASE_DIR
+from app.config import BASE_DIR, TIMEZONE
+from app.csrf import csrf_value, validate_csrf
 from app.database import get_db
 from app.models import Appointment, BusinessHours, ClosedDate, Service
+from app.payments import pix_settings
 from app.security import hash_password, verify_password
+from app.service_images import read_service_image, set_service_image
 from app.settings_store import get_setting, set_setting
 
 templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
@@ -20,20 +22,6 @@ router = APIRouter(prefix="/admin")
 WEEKDAYS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
 ADMIN_LOGIN_FAILURES: dict[str, list[float]] = {}
 ADMIN_LOGIN_LOCK = Lock()
-
-
-def csrf_value(request: Request) -> str:
-    token = request.session.get("csrf_token")
-    if not token:
-        token = secrets.token_urlsafe(32)
-        request.session["csrf_token"] = token
-    return token
-
-
-def validate_csrf(request: Request, csrf: str = Form(...)) -> None:
-    expected = request.session.get("csrf_token", "")
-    if not expected or not hmac.compare_digest(expected, csrf):
-        raise HTTPException(status_code=403, detail="Requisição inválida. Atualize a página e tente novamente.")
 
 
 def logged_in(request: Request) -> bool:
@@ -155,6 +143,23 @@ def update_status(request: Request, appointment_id: int, status: str = Form(...)
     return RedirectResponse("/admin", status_code=303)
 
 
+@router.post("/agendamentos/{appointment_id}/pagamento")
+def confirm_payment(
+    request: Request, appointment_id: int, received: str = Form(""),
+    _csrf: None = Depends(validate_csrf), db: Session = Depends(get_db),
+):
+    if (redirect := require_admin(request)):
+        return redirect
+    appointment = db.get(Appointment, appointment_id)
+    if not appointment or appointment.status != "confirmado" or received != "conferido":
+        raise HTTPException(status_code=400, detail="Confira o recebimento de um agendamento ativo.")
+    if appointment.payment_status != "pago":
+        appointment.payment_status = "pago"
+        appointment.payment_confirmed_at = datetime.now(TIMEZONE).replace(tzinfo=None)
+        db.commit()
+    return RedirectResponse("/admin", status_code=303)
+
+
 @router.get("/servicos", response_class=HTMLResponse)
 def services_page(request: Request, db: Session = Depends(get_db)):
     if (redirect := require_admin(request)):
@@ -175,6 +180,7 @@ def create_service(
     description: str = Form(""),
     price: float = Form(...),
     duration_minutes: int = Form(...),
+    image: UploadFile | None = File(None),
     _csrf: None = Depends(validate_csrf),
     db: Session = Depends(get_db),
 ):
@@ -182,16 +188,21 @@ def create_service(
         return redirect
     if not name.strip() or not category.strip() or not 0 < price <= 100000 or not 5 <= duration_minutes <= 1440:
         return RedirectResponse("/admin/servicos?erro=validacao", status_code=303)
-    db.add(
-        Service(
-            name=name.strip(),
-            category=category.strip(),
-            description=description.strip(),
-            price=price,
-            duration_minutes=duration_minutes,
-            active=True,
-        )
+    try:
+        image_data = read_service_image(image)
+    except ValueError:
+        return RedirectResponse("/admin/servicos?erro=imagem", status_code=303)
+    service = Service(
+        name=name.strip(),
+        category=category.strip(),
+        description=description.strip(),
+        price=price,
+        duration_minutes=duration_minutes,
+        active=True,
     )
+    if image_data is not None:
+        set_service_image(service, image_data)
+    db.add(service)
     db.commit()
     return RedirectResponse("/admin/servicos", status_code=303)
 
@@ -206,6 +217,8 @@ def update_service(
     price: float = Form(...),
     duration_minutes: int = Form(...),
     active: str | None = Form(None),
+    image: UploadFile | None = File(None),
+    remove_image: str | None = Form(None),
     _csrf: None = Depends(validate_csrf),
     db: Session = Depends(get_db),
 ):
@@ -215,12 +228,20 @@ def update_service(
         return RedirectResponse("/admin/servicos?erro=validacao", status_code=303)
     service = db.get(Service, service_id)
     if service:
+        try:
+            image_data = read_service_image(image)
+        except ValueError:
+            return RedirectResponse("/admin/servicos?erro=imagem", status_code=303)
         service.name = name.strip()
         service.category = category.strip()
         service.description = description.strip()
         service.price = price
         service.duration_minutes = duration_minutes
         service.active = active == "on"
+        if image_data is not None:
+            set_service_image(service, image_data)
+        elif remove_image == "on":
+            set_service_image(service, None)
         db.commit()
     return RedirectResponse("/admin/servicos", status_code=303)
 
@@ -317,6 +338,7 @@ def config_page(request: Request, db: Session = Depends(get_db)):
             "salon_name": get_setting(db, "salon_name"),
             "salon_tagline": get_setting(db, "salon_tagline"),
             "owner_whatsapp": get_setting(db, "owner_whatsapp"),
+            **pix_settings(db),
             "saved": False,
             "csrf_token": csrf_value(request),
             "error": request.query_params.get("erro"),
@@ -331,6 +353,8 @@ def save_config(
     salon_tagline: str = Form(""),
     owner_whatsapp: str = Form(""),
     new_password: str = Form(""),
+    pix_key: str = Form(""),
+    pix_recipient: str = Form(""),
     _csrf: None = Depends(validate_csrf),
     db: Session = Depends(get_db),
 ):
@@ -338,9 +362,15 @@ def save_config(
         return redirect
     if len(salon_name.strip()) < 2 or (new_password.strip() and len(new_password.strip()) < 12):
         return RedirectResponse("/admin/config?erro=validacao", status_code=303)
+    if (bool(pix_key.strip()) != bool(pix_recipient.strip())
+            or len(pix_key.strip()) > 254 or len(pix_recipient.strip()) > 120
+            or any(ord(char) < 32 for char in pix_key.strip())):
+        return RedirectResponse("/admin/config?erro=pix", status_code=303)
     set_setting(db, "salon_name", salon_name.strip())
     set_setting(db, "salon_tagline", salon_tagline.strip())
     set_setting(db, "owner_whatsapp", "".join(ch for ch in owner_whatsapp if ch in "0123456789"))
+    set_setting(db, "pix_key", pix_key.strip())
+    set_setting(db, "pix_recipient", pix_recipient.strip())
     if new_password.strip():
         set_setting(db, "admin_password_hash", hash_password(new_password.strip()))
     db.commit()
@@ -352,6 +382,7 @@ def save_config(
             "salon_tagline": salon_tagline.strip(),
             "owner_whatsapp": "".join(ch for ch in owner_whatsapp if ch in "0123456789"),
             "saved": True,
+            **pix_settings(db),
             "csrf_token": csrf_value(request),
         },
     )

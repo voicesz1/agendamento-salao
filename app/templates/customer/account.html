@@ -20,7 +20,9 @@
         <p><span class="badge {{ appointment.status }}">{{ appointment.status|capitalize }}</span></p>
         <h3>{{ appointment.service.name }}</h3>
         <p>{{ appointment.day.strftime('%d/%m/%Y') }} às {{ appointment.start_time.strftime('%H:%M') }}</p>
-        <p>R$ {{ '%.2f'|format(appointment.service.price) }}</p>
+        <p>{% if appointment.amount_cents is not none %}R$ {{ '%.2f'|format(appointment.amount_cents / 100)|replace('.', ',') }}{% else %}Valor histórico não registrado{% endif %}</p>
+        <p>{{ 'Pix' if appointment.payment_method == 'pix' else 'Pagamento no salão' }} · {{ 'Recebimento conferido' if appointment.payment_status == 'pago' else 'Pendente' }}</p>
+        <a class="btn ghost" href="/agendamentos/{{ appointment.id }}">Ver reserva e pagamento</a>
       </article>
     {% endfor %}
     </div>

@@ -9,10 +9,12 @@ from app.settings_store import get_setting
 def format_message(db: Session, appointment: Appointment) -> str:
     salon = get_setting(db, "salon_name", "Salão")
     service = appointment.service
+    amount = f"R$ {appointment.amount_cents / 100:.2f}" if appointment.amount_cents is not None else "consulte o salão"
     return (
         f"✨ Novo agendamento — {salon}\n\n"
         f"Serviço: {service.name}\n"
-        f"Valor: R$ {service.price:.2f}\n"
+        f"Valor reservado: {amount}\n"
+        f"Pagamento: {'Pix' if appointment.payment_method == 'pix' else 'no salão'} — {appointment.payment_status}\n"
         f"Cliente: {appointment.client_name}\n"
         f"WhatsApp: {appointment.client_phone}\n"
         f"Data: {appointment.day.strftime('%d/%m/%Y')} às {appointment.start_time.strftime('%H:%M')}\n"
