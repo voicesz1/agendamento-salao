@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Entrar · {{ salon_name }}</title>
-  <link rel="stylesheet" href="/static/css/style.css?v=2026-10-12-apk-download">
+  <link rel="stylesheet" href="/static/css/style.css?v=2026-10-18-show-password">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -17,10 +17,14 @@
     <input type="hidden" name="csrf" value="{{ csrf_token }}">
     <label>
       Senha
-      <input type="password" name="password" required>
+      <span class="password-input-wrap">
+        <input id="admin-password" type="password" name="password" required autocomplete="current-password">
+        <button class="password-toggle" id="toggle-admin-password" type="button" aria-controls="admin-password" aria-pressed="false">Mostrar</button>
+      </span>
     </label>
     <button class="btn" type="submit">Entrar</button>
   </form>
 </main>
+<script src="/static/js/admin-login.js" defer></script>
 </body>
 </html>
