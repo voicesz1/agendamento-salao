@@ -18,7 +18,12 @@ SESSION_HTTPS_ONLY = os.getenv("SESSION_HTTPS_ONLY", str(IS_PRODUCTION)).lower()
 SESSION_MAX_AGE = int(os.getenv("SESSION_MAX_AGE", "28800"))
 EMAIL_WEBHOOK_URL = os.getenv("EMAIL_WEBHOOK_URL", "").strip()
 EMAIL_WEBHOOK_SECRET = os.getenv("EMAIL_WEBHOOK_SECRET", "").strip()
-PUBLIC_BASE_URL = (os.getenv("PUBLIC_BASE_URL") or os.getenv("RENDER_EXTERNAL_URL") or "").strip().rstrip("/")
+PUBLIC_BASE_URL = (os.getenv("PUBLIC_BASE_URL") or os.getenv("RENDER_EXTERNAL_URL") or (f"https://{os.getenv('VERCEL_URL', '').strip()}" if os.getenv("VERCEL_URL", "").strip() else "")).strip().rstrip("/")
+MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN", "").strip()
+MERCADOPAGO_WEBHOOK_SECRET = os.getenv("MERCADOPAGO_WEBHOOK_SECRET", "").strip()
+MERCADOPAGO_ENABLED = bool(
+    MERCADOPAGO_ACCESS_TOKEN and MERCADOPAGO_WEBHOOK_SECRET and PUBLIC_BASE_URL.startswith("https://")
+)
 ANDROID_APP_PACKAGE = os.getenv("ANDROID_APP_PACKAGE", "com.atelierdasunhas.agendamento").strip()
 ANDROID_APP_SHA256_CERT_FINGERPRINT = os.getenv("ANDROID_APP_SHA256_CERT_FINGERPRINT", "").strip().upper()
 if not PUBLIC_BASE_URL and not IS_PRODUCTION:

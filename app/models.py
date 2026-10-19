@@ -87,6 +87,9 @@ class Appointment(Base):
     payment_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     pix_key: Mapped[str] = mapped_column(String(254), default="", server_default="")
     pix_recipient: Mapped[str] = mapped_column(String(120), default="", server_default="")
+    mercadopago_preference_id: Mapped[str] = mapped_column(String(100), default="", server_default="")
+    mercadopago_payment_id: Mapped[str] = mapped_column(String(100), default="", server_default="")
+    payment_provider_status: Mapped[str] = mapped_column(String(40), default="", server_default="")
 
     service: Mapped[Service] = relationship(back_populates="appointments")
     customer: Mapped[Customer | None] = relationship(back_populates="appointments")
