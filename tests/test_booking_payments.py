@@ -55,6 +55,97 @@ class BookingPaymentsTests(unittest.TestCase):
             set_setting(db, "pix_recipient", "Titular de teste")
             db.commit()
 
+    def test_login_csrf_recovery_and_session_lifecycle(self):
+        from app.config import SESSION_MAX_AGE
+        from app.routers.admin import ADMIN_LOGIN_FAILURES
+        ADMIN_LOGIN_FAILURES.clear()
+        token = csrf(self.client.get("/admin/login"))
+        self.client.cookies.clear()
+        result = self.client.post("/admin/login", data={"csrf": token, "password": "admin123"})
+        self.assertEqual(result.status_code, 403)
+        self.assertIn("text/html", result.headers["content-type"])
+        self.assertIn("Sua sessão de acesso expirou", result.text)
+        self.assertNotIn("admin123", result.text)
+        self.assertEqual(self.client.get("/admin", follow_redirects=False).status_code, 303)
+        token = csrf(result)
+        for password in ("incorrect", "another-incorrect-password"):
+            result = self.client.post("/admin/login", data={"csrf": token, "password": password})
+            self.assertEqual(result.status_code, 401)
+            self.assertIn("Senha incorreta", result.text)
+        result = self.client.post("/admin/login", data={"csrf": token, "password": "admin123"}, follow_redirects=False)
+        self.assertEqual(result.status_code, 303)
+        self.assertEqual(result.headers["location"], "/admin")
+        cookie = result.headers["set-cookie"].lower()
+        self.assertIn("httponly", cookie)
+        self.assertIn("samesite=lax", cookie)
+        for _ in range(2):
+            result = self.client.get("/admin")
+            self.assertEqual(result.status_code, 200)
+        token = csrf(result)
+        self.assertEqual(self.client.post("/admin/sair", data={"csrf": token}, follow_redirects=False).status_code, 303)
+        self.assertEqual(self.client.get("/admin", follow_redirects=False).status_code, 303)
+        self.login_admin()
+        import time
+        with patch("time.time", return_value=time.time() + SESSION_MAX_AGE + 1):
+            self.assertEqual(self.client.get("/admin", follow_redirects=False).status_code, 303)
+
+    def test_login_rejects_missing_invalid_and_unicode_csrf_as_html(self):
+        for value in (None, "invalid", "inválido"):
+            self.client.get("/admin/login")
+            data = {"password": "admin123"}
+            if value is not None:
+                data["csrf"] = value
+            result = self.client.post("/admin/login", data=data)
+            self.assertEqual(result.status_code, 403)
+            self.assertIn("text/html", result.headers["content-type"])
+
+    def test_login_with_mobile_user_agent(self):
+        self.client.headers["user-agent"] = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36"
+        self.login_admin()
+        self.assertEqual(self.client.get("/admin").status_code, 200)
+
+    def test_card_checkout_policy_csrf_and_submission(self):
+        with patch("app.routers.public.MERCADOPAGO_ENABLED", True):
+            booking = self.book(payment_method="cartao")
+            self.assertEqual(booking.status_code, 303)
+            checkout = self.client.get(booking.headers["location"])
+            self.assertEqual(checkout.status_code, 200)
+            policy = checkout.headers["content-security-policy"]
+            self.assertIn("https://sdk.mercadopago.com", policy)
+            self.assertIn("frame-src https://*.mercadopago.com", policy)
+            self.assertNotIn("sdk.mercadopago.com", self.client.get("/admin/login").headers["content-security-policy"])
+            token = re.search(r'data-csrf="([^"]+)"', checkout.text).group(1)
+            endpoint = re.search(r'data-endpoint="([^"]+)"', checkout.text).group(1)
+            with patch("app.routers.public.create_mercadopago_card_payment", return_value={"id": 123, "status": "approved", "status_detail": "accredited"}) as provider:
+                self.assertEqual(self.client.post(endpoint, json={}, headers={"X-CSRF-Token": "invalid"}).status_code, 403)
+                provider.assert_not_called()
+                response = self.client.post(endpoint, json={"token": "test-only"}, headers={"X-CSRF-Token": token})
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json()["status"], "approved")
+                self.assertTrue(provider.call_args.args[3])
+                self.client.post(endpoint, json={}, headers={"X-CSRF-Token": token})
+                provider.assert_called_once()
+            with SessionLocal() as db:
+                appointment = db.query(Appointment).one()
+                self.assertEqual(appointment.payment_status, "pago")
+                self.assertEqual(appointment.mercadopago_payment_id, "123")
+
+    def test_card_rejection_allows_retry_and_timeout_prevents_resubmission(self):
+        from app.payments import MercadoPagoRequestError
+        with patch("app.routers.public.MERCADOPAGO_ENABLED", True):
+            booking = self.book(payment_method="cartao")
+            checkout = self.client.get(booking.headers["location"])
+            token = re.search(r'data-csrf="([^"]+)"', checkout.text).group(1)
+            endpoint = re.search(r'data-endpoint="([^"]+)"', checkout.text).group(1)
+            with patch("app.routers.public.create_mercadopago_card_payment", side_effect=MercadoPagoRequestError(400)):
+                self.assertEqual(self.client.post(endpoint, json={}, headers={"X-CSRF-Token": token}).status_code, 502)
+            with patch("app.routers.public.create_mercadopago_card_payment", side_effect=RuntimeError("Verificando pagamento")) as provider:
+                self.assertEqual(self.client.post(endpoint, json={}, headers={"X-CSRF-Token": token}).status_code, 504)
+                result = self.client.post(endpoint, json={}, headers={"X-CSRF-Token": token})
+                self.assertEqual(result.json()["status"], "processing")
+                provider.assert_called_once()
+
+
     def test_restart_preserves_owners_catalog_settings_hours_and_bookings(self):
         self.assertEqual(self.book().status_code, 303)
         with SessionLocal() as db:

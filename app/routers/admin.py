@@ -53,9 +53,24 @@ def login_form(request: Request, db: Session = Depends(get_db)):
 def login(
     request: Request,
     password: str = Form(...),
-    _csrf: None = Depends(validate_csrf),
+    csrf: str = Form(""),
     db: Session = Depends(get_db),
 ):
+    try:
+        validate_csrf(request, csrf)
+    except HTTPException as exc:
+        if exc.status_code != 403:
+            raise
+        return templates.TemplateResponse(
+            request,
+            "admin/login.html",
+            {
+                "salon_name": get_setting(db, "salon_name", "Salão"),
+                "csrf_token": csrf_value(request),
+                "error": "Sua sessão de acesso expirou ou não pôde ser validada. Digite a senha e tente novamente. Se o erro continuar, permita cookies e abra o site por HTTPS.",
+            },
+            status_code=403,
+        )
     client_ip = request.client.host if request.client else "unknown"
     now = time.monotonic()
     with ADMIN_LOGIN_LOCK:
