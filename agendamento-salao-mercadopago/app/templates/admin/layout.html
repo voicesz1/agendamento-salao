@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Painel{% endblock %} · {{ salon_name }}</title>
+  <meta name="theme-color" content="#7b2843">
+  <script src="/static/js/theme.js?v=2026-10-16-dark"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=2026-10-16-mobile-hero">
+</head>
+<body>
+  <header class="top admin-top">
+    <a class="brand" href="/admin" aria-label="Painel administrativo — {{ salon_name }}">
+      <img class="brand-mark" src="/static/icons/brand-wine.svg" alt="">
+      <span class="brand-copy"><span>{{ salon_name }}</span><small>PAINEL DO ESTÚDIO</small></span>
+    </a>
+    <nav aria-label="Navegação administrativa">
+      <a href="/admin">Agendamentos</a>
+      <a href="/admin/servicos">Serviços</a>
+      <a href="/admin/horarios">Horários</a>
+      <a href="/admin/config">Configurações</a>
+      <a href="/">Ver site</a>
+      {% include "theme_toggle.html" %}
+      <form method="post" action="/admin/sair" class="inline-form">
+        <input type="hidden" name="csrf" value="{{ csrf_token }}">
+        <button class="linkish" type="submit">Sair</button>
+      </form>
+    </nav>
+  </header>
+  <main class="admin-main">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

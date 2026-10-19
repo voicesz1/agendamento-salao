@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ salon_name }} · Serviços{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero-copy">
+  <p class="eyebrow">Um cuidado que combina com você</p>
+  <h1>Seu momento.<br><em>Seu estilo.</em></h1>
+  {% if salon_tagline %}
+  <p class="lede">{{ salon_tagline }}</p>
+  {% else %}
+  <p class="lede">Seu momento de cuidado, com a tranquilidade de um horário reservado para você.</p>
+  {% endif %}
+    <div class="hero-actions">
+      <a class="btn" href="/agendar">Agendar meu horário <svg class="ui-icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+      <a class="hero-secondary" href="#servicos">Explorar serviços ↗</a>
+    </div>
+    <p class="hero-note"><svg class="ui-icon" aria-hidden="true"><use href="#i-check"/></svg>Escolha seu cuidado. Reserve no seu tempo.</p>
+  </div>
+  <div class="style-card" aria-hidden="true">
+    <p>ATELIER · CORES &amp; FORMAS</p>
+    <div class="nail-palette"><span></span><span></span><span></span></div>
+    <div><h2>Um toque de você.</h2><small>Detalhes que expressam seu estilo.</small></div>
+  </div>
+</section>
+
+<section class="catalog-intro" id="servicos">
+  <div><p class="eyebrow">Encontre seu próximo cuidado</p>
+  <h2>O que vamos fazer hoje?</h2></div>
+  <p>Veja os serviços e encontre o melhor horário para você.</p>
+</section>
+<nav class="category-nav" aria-label="Categorias de serviços">
+  {% for category in grouped %}<a href="#categoria-{{ loop.index }}">{{ category }}</a>{% endfor %}
+</nav>
+{% for category, services in grouped.items() %}
+<section class="catalog" id="categoria-{{ loop.index }}">
+  <div class="catalog-heading"><h2>{{ category }}</h2><small>{{ services|length }} {{ 'opção' if services|length == 1 else 'opções' }}</small></div>
+  <div class="cards">
+    {% for service in services %}
+    <article class="card">
+      {% if service.image_revision %}<img class="service-image" src="/media/servicos/{{ service.id }}/{{ service.image_revision }}.jpg" alt="Foto ilustrativa de {{ service.name }}" width="640" height="400" loading="lazy" decoding="async">{% endif %}
+      <div class="card-top">
+        <h3>{{ service.name }}</h3>
+        <p class="price">R$ {{ '%.2f'|format(service.price)|replace('.', ',') }}</p>
+      </div>
+      <p class="service-description">{{ service.description }}</p>
+      <div class="service-bottom"><span class="meta"><svg class="ui-icon" aria-hidden="true"><use href="#i-clock"/></svg>{{ service.duration_minutes }} min</span>
+      <a class="btn" href="/agendar?servico={{ service.id }}" aria-label="Agendar {{ service.name }}">Escolher <span aria-hidden="true">→</span></a></div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endfor %}
+<section class="app-banner" aria-labelledby="app-banner-title">
+  <div><h2 id="app-banner-title">Seu cuidado, sempre por perto.</h2><p>Tenha o salão na tela inicial do seu Android.</p></div>
+  <div class="app-banner-actions"><button type="button" class="btn" data-install-app>Instalar aplicativo <span aria-hidden="true">↓</span></button>
+  <a class="text-link" id="download-app-home" href="/static/downloads/agendamento-salao.apk" download="Agendamento-do-Salao.apk">Baixar versão Android (APK)</a></div>
+</section>
+{% endblock %}

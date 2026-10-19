@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Agendamento do Salão</string>
+    <string name="launcher_name">Agendamentos</string>
+    <string name="launch_url">https://agendamento-salao-e8gw.onrender.com/</string>
+    <string name="asset_statements">[{\"relation\":[\"delegate_permission/common.handle_all_urls\"],\"target\":{\"namespace\":\"web\",\"site\":\"https://agendamento-salao-e8gw.onrender.com\"}}]</string>
+</resources>
