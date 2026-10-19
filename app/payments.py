@@ -93,9 +93,37 @@ def create_mercadopago_preference(appointment, service_name: str) -> tuple[str, 
 
 
 class MercadoPagoRequestError(RuntimeError):
-    def __init__(self, status_code: int):
+    def __init__(self, status_code: int, provider_error: str, cause_codes: tuple[str, ...]):
         super().__init__("Não foi possível iniciar o pagamento. Confira os dados e tente novamente.")
         self.status_code = status_code
+        self.provider_error = provider_error
+        self.cause_codes = cause_codes
+
+
+def _payment_error_diagnostics(response: httpx.Response) -> tuple[str, tuple[str, ...]]:
+    """Extract provider error identifiers only; never log its request or card data."""
+    try:
+        body = response.json()
+    except ValueError:
+        return "unknown", ()
+    if not isinstance(body, dict):
+        return "unknown", ()
+
+    provider_error = str(body.get("error", "unknown"))
+    if not provider_error.isascii() or not provider_error.replace("_", "").replace("-", "").isalnum():
+        provider_error = "unknown"
+    provider_error = provider_error[:80] or "unknown"
+
+    causes = body.get("cause")
+    cause_codes = tuple(
+        str(cause["code"])[:40]
+        for cause in causes
+        if isinstance(cause, dict)
+        and cause.get("code") is not None
+        and str(cause["code"]).isascii()
+        and str(cause["code"]).replace("_", "").replace("-", "").isalnum()
+    ) if isinstance(causes, list) else ()
+    return provider_error, cause_codes
 
 
 class MercadoPagoUnavailableError(RuntimeError):
@@ -199,7 +227,14 @@ def create_mercadopago_card_payment(appointment, service_name: str, form_data: d
         raise RuntimeError("O Mercado Pago ainda está verificando o pagamento.") from exc
 
     if not response.is_success:
-        raise MercadoPagoRequestError(response.status_code)
+        provider_error, cause_codes = _payment_error_diagnostics(response)
+        logger.error(
+            "Mercado Pago rejected card payment (HTTP %s; error=%s; cause_codes=%s)",
+            response.status_code,
+            provider_error,
+            ",".join(cause_codes) or "none",
+        )
+        raise MercadoPagoRequestError(response.status_code, provider_error, cause_codes)
     try:
         result = response.json()
     except ValueError as exc:

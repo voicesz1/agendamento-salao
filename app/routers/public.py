@@ -319,7 +319,7 @@ def submit_card_payment(
             request.session["mp_card_attempts"] = attempts
             return JSONResponse(
                 status_code=502,
-                content={"detail": "Não foi possível iniciar o pagamento. Confira os dados e tente novamente."},
+                content={"detail": "O Mercado Pago rejeitou esta tentativa. Confira os dados do cartão ou tente outro cartão."},
             )
         # The remote API may have created a payment before the network failed.
         # Keep this attempt locked until its signed webhook updates the status.
@@ -331,8 +331,13 @@ def submit_card_payment(
         return JSONResponse(status_code=504, content={"detail": str(exc)})
 
     appointment.mercadopago_payment_id = str(payment.get("id", ""))
-    appointment.payment_status = "pago" if payment.get("status") == "approved" else "pendente"
-    appointment.payment_provider_status = str(payment.get("status_detail", ""))
+    provider_status = str(payment.get("status", ""))
+    appointment.payment_status = (
+        "pago" if provider_status == "approved"
+        else "recusado" if provider_status == "rejected"
+        else "pendente"
+    )
+    appointment.payment_provider_status = str(payment.get("status_detail", provider_status))
     if appointment.payment_status == "pago":
         appointment.payment_confirmed_at = datetime.now(TIMEZONE).replace(tzinfo=None)
     db.commit()

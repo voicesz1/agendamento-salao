@@ -12,6 +12,28 @@
     result.classList.add("alert");
   }
 
+  function getSdkErrorCode(error) {
+    const causes = Array.isArray(error?.cause) ? error.cause : [error?.cause];
+    const code = causes
+      .map((cause) => cause && typeof cause === "object" ? cause.code : "")
+      .find((value) => typeof value === "string" && value.length > 0);
+    return code || "";
+  }
+
+  function cardErrorMessage(code) {
+    const messages = {
+      fields_setup_failed: "Os campos seguros do cartão não carregaram. Atualize a página e tente novamente.",
+      get_payment_methods_failed: "Não foi possível carregar as opções de cartão. Tente novamente em instantes.",
+      card_token_creation_failed: "O Mercado Pago não validou os dados do cartão. Confira número, validade, código de segurança e titular.",
+      get_identification_types_failed: "Não foi possível carregar os tipos de documento. Atualize a página e tente novamente.",
+      get_card_bin_payment_methods_failed: "Não foi possível identificar a bandeira do cartão. Confira o número informado.",
+      get_card_issuers_failed: "Não foi possível identificar o banco emissor. Tente novamente ou use outro cartão.",
+      get_payment_installments_failed: "Não foi possível consultar as parcelas para este cartão. Tente novamente.",
+      missing_payment_information: "Faltam dados do cartão ou do parcelamento. Confira os campos e tente novamente.",
+    };
+    return messages[code] || "Não foi possível validar o cartão. Confira os campos e tente novamente.";
+  }
+
   if (!window.MercadoPago) {
     loading.hidden = true;
     showError("Não foi possível carregar o formulário do Mercado Pago. Atualize a página ou tente novamente mais tarde.");
@@ -73,8 +95,12 @@
           throw error;
         }
       },
-      onError: () => {
-        showError("Não foi possível validar o cartão. Confira os campos e tente novamente.");
+      onError: (error) => {
+        // The SDK error contains diagnostic causes, not card form values. Log only
+        // the cause code so production logs/console never receive payment data.
+        const code = getSdkErrorCode(error);
+        console.warn("Mercado Pago Card Payment Brick error", code || "unknown");
+        showError(cardErrorMessage(code));
       },
     },
   }).catch(() => {
