@@ -1,7 +1,8 @@
 {% extends "admin/layout.html" %}
 {% block title %}Configurações{% endblock %}
 {% block content %}
-{% if error %}<p class="alert">Confira o nome do salão e se a nova senha tem pelo menos 12 caracteres.</p>{% endif %}
+{% if error == 'pix' %}<p class="alert">Preencha a chave Pix e o nome do titular juntos, respeitando os limites dos campos.</p>
+{% elif error %}<p class="alert">Confira o nome do salão e se a nova senha tem pelo menos 12 caracteres.</p>{% endif %}
 <h1>Configurações</h1>
 {% if saved %}<p class="ok">Alterações salvas.</p>{% endif %}
 
@@ -15,6 +16,13 @@
   <label>Nova senha do painel (deixe em branco para manter)
     <input type="password" name="new_password">
   </label>
+  <fieldset>
+    <legend>Receber por Pix</legend>
+    <p class="hint">Copie a chave diretamente do aplicativo do seu banco. A cliente informará o valor no banco e você deverá conferir o recebimento antes de marcar como pago.</p>
+    <label>Chave Pix <input name="pix_key" value="{{ pix_key }}" maxlength="254" autocomplete="off" spellcheck="false"></label>
+    <label>Nome do titular da conta <input name="pix_recipient" value="{{ pix_recipient }}" maxlength="120"></label>
+    <p class="hint">Deixe os dois campos vazios para desativar o Pix em novas reservas. Alterações não modificam os dados de reservas já feitas. O cadastro da chave não verifica sua titularidade no banco.</p>
+  </fieldset>
   <button class="btn" type="submit">Salvar</button>
 </form>
 {% endblock %}

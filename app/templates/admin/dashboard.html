@@ -21,6 +21,7 @@
       <th>Cliente</th>
       <th>Status</th>
       <th>WhatsApp</th>
+      <th>Pagamento</th>
       <th></th>
     </tr>
   </thead>
@@ -29,10 +30,27 @@
     <tr class="{{ item.status }}">
       <td>{{ item.day.strftime('%d/%m/%Y') }}</td>
       <td>{{ item.start_time.strftime('%H:%M') }}–{{ item.end_time.strftime('%H:%M') }}</td>
-      <td>{{ item.service.name }}<br><small>R$ {{ '%.2f'|format(item.service.price) }}</small></td>
+      <td>{{ item.service.name }}<br><small>{% if item.amount_cents is not none %}R$ {{ '%.2f'|format(item.amount_cents / 100)|replace('.', ',') }}{% else %}Valor histórico não registrado{% endif %}</small></td>
       <td>{{ item.client_name }}<br><small>{{ item.client_phone }}</small></td>
       <td><span class="badge {{ item.status }}">{{ item.status }}</span></td>
       <td>{% if item.whatsapp_sent %}enviado{% else %}pendente{% endif %}</td>
+      <td>
+        <strong>{{ 'Pix' if item.payment_method == 'pix' else ('Cartão (Mercado Pago)' if item.payment_method == 'cartao' else 'No salão') }}</strong><br>
+        {% if item.payment_status == 'pago' %}
+          <span class="badge confirmado">Recebimento conferido</span>
+          <small>{{ item.payment_confirmed_at.strftime('%d/%m/%Y %H:%M') if item.payment_confirmed_at else '' }}</small>
+        {% else %}
+          <span class="badge">{{ item.payment_provider_status if item.payment_method == 'cartao' and item.payment_provider_status else ('Recusado' if item.payment_status == 'recusado' else 'Pendente') }}</span>
+          {% if item.status == 'confirmado' and item.payment_method != 'cartao' %}
+          <form method="post" action="/admin/agendamentos/{{ item.id }}/pagamento" class="payment-check">
+            <input type="hidden" name="csrf" value="{{ csrf_token }}">
+            <label><input type="checkbox" name="received" value="conferido" required> Conferi o recebimento{% if item.payment_method == 'pix' %} no banco{% endif %}</label>
+            <button type="submit" class="linkish">Registrar pagamento</button>
+          </form>
+          {% endif %}
+        {% endif %}
+        {% if item.status == 'cancelado' and item.payment_status == 'pago' %}<p class="hint">Cancelamento não estorna o pagamento. Combine a devolução com a cliente.</p>{% endif %}
+      </td>
       <td>
         {% if item.status == 'confirmado' %}
         <form method="post" action="/admin/agendamentos/{{ item.id }}/status">

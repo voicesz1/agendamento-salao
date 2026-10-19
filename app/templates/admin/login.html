@@ -4,12 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Entrar · {{ salon_name }}</title>
+  <meta name="theme-color" content="#7b2843">
+  <script src="/static/js/theme.js?v=2026-10-16-dark"></script>
   <link rel="stylesheet" href="/static/css/style.css?v=2026-10-18-show-password">
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
 <main class="narrow login-box">
-  <img class="login-brand-mark" src="/static/icons/icon-192.png?v=2" alt="" width="64" height="64">
+  <div class="login-theme-control">{% include "theme_toggle.html" %}</div>
+  <img class="login-brand-mark" src="/static/icons/brand-wine.svg" alt="" width="64" height="64">
   <p class="eyebrow">Área administrativa</p>
   <h1>{{ salon_name }}</h1>
   {% if error %}<p class="alert">{{ error }}</p>{% endif %}

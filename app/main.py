@@ -15,8 +15,8 @@ from app.config import (
     SESSION_MAX_AGE,
     validate_runtime_config,
 )
-from app.database import Base, SessionLocal, engine, migrate_customer_accounts
-from app.routers import admin, public
+from app.database import Base, SessionLocal, engine, migrate_customer_accounts, migrate_payments, migrate_service_images
+from app.routers import admin, media, public, webhooks
 from app.seed import seed_if_needed
 
 
@@ -25,6 +25,8 @@ async def lifespan(_app: FastAPI):
     validate_runtime_config()
     Base.metadata.create_all(bind=engine)
     migrate_customer_accounts()
+    migrate_payments()
+    migrate_service_images()
     db = SessionLocal()
     try:
         seed_if_needed(db)
@@ -44,7 +46,8 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=SECRET_KEY,
     max_age=SESSION_MAX_AGE,
-    same_site="strict",
+    # Lax permite recuperar a sessão na volta do checkout externo (navegação GET).
+    same_site="lax",
     https_only=SESSION_HTTPS_ONLY,
 )
 
@@ -56,6 +59,8 @@ async def security_headers(request: Request, call_next):
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    if not request.url.path.startswith("/static/"):
+        response.headers.setdefault("Cache-Control", "no-store")
     response.headers.setdefault(
         "Content-Security-Policy",
         "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; "
@@ -109,6 +114,8 @@ def android_asset_links():
 
 app.include_router(public.router)
 app.include_router(admin.router)
+app.include_router(media.router)
+app.include_router(webhooks.router)
 
 
 @app.get("/healthz", include_in_schema=False)

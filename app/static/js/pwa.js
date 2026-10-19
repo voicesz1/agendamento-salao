@@ -18,6 +18,7 @@ function appIsInstalled() {
 function hideInstallControlsWhenInstalled() {
   if (!appIsInstalled()) return;
   if (installButton) installButton.hidden = true;
+  document.querySelectorAll("[data-install-app]").forEach((button) => { button.hidden = true; });
 }
 
 hideInstallControlsWhenInstalled();
@@ -81,6 +82,9 @@ async function promptToInstall() {
 }
 
 installButton?.addEventListener("click", promptToInstall);
+document.querySelectorAll("[data-install-app]").forEach((button) => {
+  button.addEventListener("click", promptToInstall);
+});
 installConfirmButton?.addEventListener("click", () => {
   if (installPrompt) promptToInstall();
   else installDialog?.close();

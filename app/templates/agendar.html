@@ -1,15 +1,21 @@
 {% extends "base.html" %}
 {% block title %}Agendar · {{ salon_name }}{% endblock %}
 {% block content %}
-<section class="narrow">
-  <p class="eyebrow">Reserva</p>
-  <h1>Escolha o serviço, o dia e o horário</h1>
-  <p class="lede">Agende sem criar conta: basta informar seu nome e WhatsApp. Os horários disponíveis já descontam as reservas confirmadas.</p>
+<section class="narrow booking-page">
+  <a class="back-link" href="/#servicos">← Voltar aos serviços</a>
+  <p class="eyebrow">Vamos cuidar de você</p>
+  <h1>Seu próximo cuidado.</h1>
+  <p class="lede">Escolha o serviço, o horário e informe seu nome e WhatsApp.</p>
+  <ol class="booking-steps" aria-label="Etapas da reserva"><li>Seu cuidado</li><li>Dia e horário</li><li>Pagamento</li></ol>
   {% if error %}
   <p class="alert">{{ error }}</p>
   {% endif %}
 
-  <form method="post" action="/agendar" class="booking" id="booking-form">
+  <form method="post" action="/agendar" class="booking booking-layout" id="booking-form">
+    <input type="hidden" name="csrf" value="{{ csrf_token }}">
+    <div class="booking-details">
+    <section class="booking-section" aria-labelledby="care-title">
+    <h2 class="form-heading" id="care-title"><span>01</span> Escolha seu cuidado</h2>
     <label>
       Serviço
       <select name="service_id" id="service_id" required>
@@ -17,34 +23,41 @@
         {% for service in services %}
         <option value="{{ service.id }}"
           data-duration="{{ service.duration_minutes }}"
+          data-price="{{ '%.2f'|format(service.price)|replace('.', ',') }}"
           {% if selected and selected.id == service.id %}selected{% endif %}>
-          {{ service.name }} — R$ {{ '%.2f'|format(service.price) }} ({{ service.duration_minutes }} min)
+          {{ service.name }} — R$ {{ '%.2f'|format(service.price)|replace('.', ',') }} ({{ service.duration_minutes }} min)
         </option>
         {% endfor %}
       </select>
     </label>
+    </section>
 
+    <section class="booking-section" aria-labelledby="time-title">
+    <h2 class="form-heading" id="time-title"><span>02</span> Dia e horário</h2>
     <label>
       Dia
       <select name="day" id="day" required>
         <option value="">Selecione o dia</option>
         {% for d in dates %}
-        <option value="{{ d.isoformat() }}">{{ d.strftime('%d/%m/%Y') }}</option>
+        <option value="{{ d.isoformat() }}" {% if selected_day == d.isoformat() %}selected{% endif %}>{{ ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'][d.weekday()] }} · {{ d.strftime('%d/%m/%Y') }}</option>
         {% endfor %}
       </select>
     </label>
 
     <fieldset>
       <legend>Horário disponível</legend>
-      <div id="slots" class="slots">
+      <div id="slots" class="slots" aria-live="polite" aria-busy="false">
         <p class="hint">Selecione o serviço e o dia para ver os horários.</p>
       </div>
       <input type="hidden" name="start_time" id="start_time" required>
     </fieldset>
+    </section>
 
+    <section class="booking-section" aria-labelledby="contact-title">
+    <h2 class="form-heading" id="contact-title">Como podemos te chamar?</h2>
     <label>
       Seu nome
-      <input type="text" name="client_name" value="{{ client_name|default('') }}" required maxlength="120" autocomplete="name">
+      <input type="text" name="client_name" value="{{ client_name|default('') }}" required minlength="2" maxlength="120" autocomplete="name">
     </label>
     <label>
       WhatsApp
@@ -52,11 +65,26 @@
     </label>
     <label>
       Observação (opcional)
-      <textarea name="notes" rows="3" placeholder="Preferência de formato, cor, etc."></textarea>
+      <textarea name="notes" rows="3" maxlength="1000" placeholder="Preferência de formato, cor, etc.">{{ notes|default('') }}</textarea>
     </label>
+    </section>
+    </div>
 
-    <button class="btn" type="submit">Confirmar agendamento</button>
+    <section class="booking-checkout" aria-labelledby="checkout-title">
+    <h2 class="form-heading" id="checkout-title"><span>03</span> Pagamento</h2>
+    <p class="hint">Escolha pagar no estabelecimento, por Pix ou com cartão pelo Mercado Pago.</p>
+    <fieldset class="payment-options">
+      <legend>Forma de pagamento</legend>
+      <label class="payment-option"><input type="radio" name="payment_method" value="no_local" {% if payment_method == 'no_local' or payment_method not in ['pix', 'cartao'] or (payment_method == 'pix' and not pix_available) %}checked{% endif %} required><span><strong>Pagar no estabelecimento</strong><small>Reserve agora e pague no dia do atendimento.</small></span></label>
+      <label class="payment-option {% if not pix_available %}unavailable{% endif %}"><input type="radio" name="payment_method" value="pix" {% if payment_method == 'pix' and pix_available %}checked{% endif %} {% if not pix_available %}disabled{% endif %}><span><strong>Pix (opcional)</strong><small>{% if pix_available %}Copie a chave após reservar. O salão confere o recebimento.{% else %}Disponível após o salão cadastrar a chave.{% endif %}</small></span></label>
+      <label class="payment-option {% if not mercadopago_enabled %}unavailable{% endif %}"><input type="radio" name="payment_method" value="cartao" {% if payment_method == 'cartao' and mercadopago_enabled %}checked{% endif %} {% if not mercadopago_enabled %}disabled{% endif %}><span><strong>Cartão pelo Mercado Pago</strong><small>{% if mercadopago_enabled %}Pagamento seguro no ambiente do Mercado Pago.{% else %}Disponível após configurar as credenciais do Mercado Pago no Vercel.{% endif %}</small></span></label>
+    </fieldset>
+    <div class="booking-total" aria-live="polite"><span>Valor do serviço</span><strong id="booking-total">{% if selected %}R$ {{ '%.2f'|format(selected.price)|replace('.', ',') }}{% else %}Escolha um serviço{% endif %}</strong></div>
+    <p class="hint">Seu horário fica reservado ao confirmar. O pagamento é registrado separadamente.</p>
+    <p class="alert" id="booking-error" role="alert" hidden></p>
+    <button class="btn" id="booking-submit" type="submit">Reservar meu horário <span aria-hidden="true">→</span></button>
+    </section>
   </form>
 </section>
-<script src="/static/js/booking.js"></script>
+<script src="/static/js/booking.js?v=2026-10-18-mercadopago-v1"></script>
 {% endblock %}

@@ -1,6 +1,6 @@
 from datetime import date, datetime, time
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text, Time
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Text, Time
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -16,6 +16,8 @@ class Service(Base):
     price: Mapped[float] = mapped_column(Float)
     duration_minutes: Mapped[int] = mapped_column(Integer)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    image_data: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True, deferred=True)
+    image_revision: Mapped[str] = mapped_column(String(64), default="", server_default="")
 
     appointments: Mapped[list["Appointment"]] = relationship(back_populates="service")
 
@@ -79,6 +81,15 @@ class Appointment(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime)
     whatsapp_sent: Mapped[bool] = mapped_column(Boolean, default=False)
     whatsapp_error: Mapped[str] = mapped_column(Text, default="")
+    amount_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    payment_method: Mapped[str] = mapped_column(String(20), default="no_local", server_default="no_local")
+    payment_status: Mapped[str] = mapped_column(String(20), default="pendente", server_default="pendente")
+    payment_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    pix_key: Mapped[str] = mapped_column(String(254), default="", server_default="")
+    pix_recipient: Mapped[str] = mapped_column(String(120), default="", server_default="")
+    mercadopago_preference_id: Mapped[str] = mapped_column(String(100), default="", server_default="")
+    mercadopago_payment_id: Mapped[str] = mapped_column(String(100), default="", server_default="")
+    payment_provider_status: Mapped[str] = mapped_column(String(40), default="", server_default="")
 
     service: Mapped[Service] = relationship(back_populates="appointments")
     customer: Mapped[Customer | None] = relationship(back_populates="appointments")
