@@ -158,6 +158,8 @@ def confirm_payment(
     if not appointment or appointment.status != "confirmado" or received != "conferido":
 >>>>>>> 7ec44561c7d98161acfc38f2b2a0b4a3459d0045
         raise HTTPException(status_code=400, detail="Confira o recebimento de um agendamento ativo.")
+    if appointment.payment_method == "cartao":
+        raise HTTPException(status_code=400, detail="O pagamento com cartão é confirmado automaticamente pelo Mercado Pago.")
     if appointment.payment_status != "pago":
         appointment.payment_status = "pago"
         appointment.payment_confirmed_at = datetime.now(TIMEZONE).replace(tzinfo=None)
