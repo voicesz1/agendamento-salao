@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import os
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -22,8 +21,12 @@ EMAIL_WEBHOOK_SECRET = os.getenv("EMAIL_WEBHOOK_SECRET", "").strip()
 PUBLIC_BASE_URL = (os.getenv("PUBLIC_BASE_URL") or os.getenv("RENDER_EXTERNAL_URL") or (f"https://{os.getenv('VERCEL_URL', '').strip()}" if os.getenv("VERCEL_URL", "").strip() else "")).strip().rstrip("/")
 MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN", "").strip()
 MERCADOPAGO_WEBHOOK_SECRET = os.getenv("MERCADOPAGO_WEBHOOK_SECRET", "").strip()
+MERCADOPAGO_PUBLIC_KEY = os.getenv("MERCADOPAGO_PUBLIC_KEY", "").strip()
 MERCADOPAGO_ENABLED = bool(
-    MERCADOPAGO_ACCESS_TOKEN and MERCADOPAGO_WEBHOOK_SECRET and PUBLIC_BASE_URL.startswith("https://")
+    MERCADOPAGO_ACCESS_TOKEN
+    and MERCADOPAGO_WEBHOOK_SECRET
+    and MERCADOPAGO_PUBLIC_KEY
+    and PUBLIC_BASE_URL.startswith("https://")
 )
 ANDROID_APP_PACKAGE = os.getenv("ANDROID_APP_PACKAGE", "com.atelierdasunhas.agendamento").strip()
 ANDROID_APP_SHA256_CERT_FINGERPRINT = os.getenv("ANDROID_APP_SHA256_CERT_FINGERPRINT", "").strip().upper()
@@ -49,55 +52,3 @@ def validate_runtime_config() -> None:
         raise RuntimeError("Defina SECRET_KEY com pelo menos 32 caracteres aleatórios em produção.")
     if len(ADMIN_PASSWORD) < 12:
         raise RuntimeError("Defina ADMIN_PASSWORD com pelo menos 12 caracteres em produção.")
-=======
-import os
-from pathlib import Path
-from zoneinfo import ZoneInfo
-
-from sqlalchemy.engine import make_url
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-APP_ENV = os.getenv("APP_ENV", "development").strip().lower()
-IS_PRODUCTION = APP_ENV == "production"
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'salao.db'}")
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
-elif DATABASE_URL.startswith("postgresql://"):
-    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
-SECRET_KEY = os.getenv("SECRET_KEY", "development-only-secret-change-before-deploying")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
-SESSION_HTTPS_ONLY = os.getenv("SESSION_HTTPS_ONLY", str(IS_PRODUCTION)).lower() in {"1", "true", "yes"}
-SESSION_MAX_AGE = int(os.getenv("SESSION_MAX_AGE", "28800"))
-EMAIL_WEBHOOK_URL = os.getenv("EMAIL_WEBHOOK_URL", "").strip()
-EMAIL_WEBHOOK_SECRET = os.getenv("EMAIL_WEBHOOK_SECRET", "").strip()
-PUBLIC_BASE_URL = (os.getenv("PUBLIC_BASE_URL") or os.getenv("RENDER_EXTERNAL_URL") or (f"https://{os.getenv('VERCEL_URL', '').strip()}" if os.getenv("VERCEL_URL", "").strip() else "")).strip().rstrip("/")
-MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN", "").strip()
-MERCADOPAGO_WEBHOOK_SECRET = os.getenv("MERCADOPAGO_WEBHOOK_SECRET", "").strip()
-MERCADOPAGO_ENABLED = bool(
-    MERCADOPAGO_ACCESS_TOKEN and MERCADOPAGO_WEBHOOK_SECRET and PUBLIC_BASE_URL.startswith("https://")
-)
-ANDROID_APP_PACKAGE = os.getenv("ANDROID_APP_PACKAGE", "com.atelierdasunhas.agendamento").strip()
-ANDROID_APP_SHA256_CERT_FINGERPRINT = os.getenv("ANDROID_APP_SHA256_CERT_FINGERPRINT", "").strip().upper()
-if not PUBLIC_BASE_URL and not IS_PRODUCTION:
-    PUBLIC_BASE_URL = "http://127.0.0.1:8000"
-TIMEZONE = ZoneInfo(os.getenv("TIMEZONE", "America/Sao_Paulo"))
-DEFAULT_ADMIN_PASSWORD = "admin123"
-DEFAULT_OWNER_WHATSAPP = "5511999999999"
-DEFAULT_SALON_NAME = "Atelier das Unhas"
-
-
-def validate_runtime_config() -> None:
-    """Fail early when production is started with unsafe or unusable settings."""
-    if SESSION_MAX_AGE < 300:
-        raise RuntimeError("SESSION_MAX_AGE deve ser de pelo menos 300 segundos.")
-    try:
-        make_url(DATABASE_URL)
-    except Exception as exc:
-        raise RuntimeError("DATABASE_URL inválida.") from exc
-    if not IS_PRODUCTION:
-        return
-    if len(SECRET_KEY) < 32 or SECRET_KEY == "development-only-secret-change-before-deploying":
-        raise RuntimeError("Defina SECRET_KEY com pelo menos 32 caracteres aleatórios em produção.")
-    if len(ADMIN_PASSWORD) < 12:
-        raise RuntimeError("Defina ADMIN_PASSWORD com pelo menos 12 caracteres em produção.")
->>>>>>> 18a17922f68412df42a435d3021fd4f1037c0346

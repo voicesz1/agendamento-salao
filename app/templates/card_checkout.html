@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Pagamento com cartão · {{ salon_name }}{% endblock %}
+{% block content %}
+<section class="narrow card-checkout-page">
+  <a class="back-link" href="/agendamentos/{{ appointment.id }}">← Voltar aos dados da reserva</a>
+  <p class="eyebrow">Reserva #{{ appointment.id }} · Mercado Pago</p>
+  <h1>Pagamento com cartão de débito ou crédito</h1>
+  <p class="lede">Confira o valor e preencha os dados do cartão no formulário seguro.</p>
+
+  <dl class="summary card-checkout-summary">
+    <div><dt>Serviço</dt><dd>{{ appointment.service.name }}</dd></div>
+    <div><dt>Data e horário</dt><dd>{{ appointment.day.strftime('%d/%m/%Y') }} · {{ appointment.start_time.strftime('%H:%M') }}</dd></div>
+    <div><dt>Total</dt><dd>R$ {{ '%.2f'|format(appointment.amount_cents / 100)|replace('.', ',') }}</dd></div>
+  </dl>
+
+  <section class="payment-panel card-checkout-panel" aria-labelledby="card-checkout-title">
+    <h2 id="card-checkout-title">Dados do cartão</h2>
+    <p class="hint">O Mercado Pago identifica a bandeira e valida os campos. Os dados completos do cartão e o CVV não são salvos pelo salão.</p>
+    <div id="card-payment"
+      data-public-key="{{ mercadopago_public_key }}"
+      data-amount="{{ '%.2f'|format(appointment.amount_cents / 100) }}"
+      data-csrf="{{ csrf_token }}"
+      data-endpoint="/api/pagamentos/cartao/{{ appointment.id }}">
+      <p class="hint" id="card-payment-loading" role="status">Carregando formulário seguro…</p>
+      <div id="cardPaymentBrick_container"></div>
+    </div>
+    <p class="hint" id="card-payment-result" role="status" aria-live="polite"></p>
+  </section>
+  <p class="hint">A aprovação é feita pelo Mercado Pago e pelo emissor do cartão. A reserva só aparece como paga após a confirmação.</p>
+</section>
+<script src="https://sdk.mercadopago.com/js/v2" defer></script>
+<script src="/static/js/card-checkout.js?v=2026-10-19-brick" defer></script>
+{% endblock %}
