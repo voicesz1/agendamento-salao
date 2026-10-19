@@ -37,7 +37,8 @@
         texts: { formTitle: "Cartão de crédito" },
       },
       paymentMethods: {
-        types: { excluded: ["debit_card", "prepaid_card"] },
+        // The customer may use either a credit or debit card; prepaid stays disabled.
+        types: { excluded: ["prepaid_card"] },
         minInstallments: 1,
         maxInstallments: 6,
       },

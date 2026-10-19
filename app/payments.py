@@ -134,8 +134,16 @@ def create_mercadopago_card_payment(appointment, service_name: str, form_data: d
         if isinstance(methods, list)
         else None
     )
-    if not method or method.get("payment_type_id") != "credit_card" or method.get("status") != "active":
-        raise ValueError("Escolha um cartão de crédito ativo para continuar.")
+    if (
+        not method
+        or method.get("payment_type_id") not in {"credit_card", "debit_card"}
+        or method.get("status") != "active"
+    ):
+        raise ValueError("Escolha um cartão de débito ou crédito ativo para continuar.")
+    # Debit cards are always processed as a single payment, even if the client
+    # submits a different installment count.
+    if method.get("payment_type_id") == "debit_card":
+        installments = 1
 
     payer = {
         "email": email,
