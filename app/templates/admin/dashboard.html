@@ -35,13 +35,22 @@
       <td><span class="badge {{ item.status }}">{{ item.status }}</span></td>
       <td>{% if item.whatsapp_sent %}enviado{% else %}pendente{% endif %}</td>
       <td>
+<<<<<<< HEAD
         <strong>{{ 'Pix' if item.payment_method == 'pix' else ('Cartão (Mercado Pago)' if item.payment_method == 'cartao' else 'No salão') }}</strong><br>
+=======
+        <strong>{{ 'Pix' if item.payment_method == 'pix' else 'No salão' }}</strong><br>
+>>>>>>> 7ec44561c7d98161acfc38f2b2a0b4a3459d0045
         {% if item.payment_status == 'pago' %}
           <span class="badge confirmado">Recebimento conferido</span>
           <small>{{ item.payment_confirmed_at.strftime('%d/%m/%Y %H:%M') if item.payment_confirmed_at else '' }}</small>
         {% else %}
+<<<<<<< HEAD
           <span class="badge">{{ item.payment_provider_status if item.payment_method == 'cartao' and item.payment_provider_status else ('Recusado' if item.payment_status == 'recusado' else 'Pendente') }}</span>
           {% if item.status == 'confirmado' and item.payment_method != 'cartao' %}
+=======
+          <span class="badge">Pendente</span>
+          {% if item.status == 'confirmado' %}
+>>>>>>> 7ec44561c7d98161acfc38f2b2a0b4a3459d0045
           <form method="post" action="/admin/agendamentos/{{ item.id }}/pagamento" class="payment-check">
             <input type="hidden" name="csrf" value="{{ csrf_token }}">
             <label><input type="checkbox" name="received" value="conferido" required> Conferi o recebimento{% if item.payment_method == 'pix' %} no banco{% endif %}</label>

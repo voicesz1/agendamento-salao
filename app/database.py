@@ -44,9 +44,12 @@ def migrate_payments() -> None:
             "payment_confirmed_at": "TIMESTAMP NULL",
             "pix_key": "VARCHAR(254) NOT NULL DEFAULT ''",
             "pix_recipient": "VARCHAR(120) NOT NULL DEFAULT ''",
+<<<<<<< HEAD
             "mercadopago_preference_id": "VARCHAR(100) NOT NULL DEFAULT ''",
             "mercadopago_payment_id": "VARCHAR(100) NOT NULL DEFAULT ''",
             "payment_provider_status": "VARCHAR(40) NOT NULL DEFAULT ''",
+=======
+>>>>>>> 7ec44561c7d98161acfc38f2b2a0b4a3459d0045
         }
         for name, sql_type in additions.items():
             if name not in columns:

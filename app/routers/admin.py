@@ -151,7 +151,11 @@ def confirm_payment(
     if (redirect := require_admin(request)):
         return redirect
     appointment = db.get(Appointment, appointment_id)
+<<<<<<< HEAD
     if not appointment or appointment.status != "confirmado" or appointment.payment_method == "cartao" or received != "conferido":
+=======
+    if not appointment or appointment.status != "confirmado" or received != "conferido":
+>>>>>>> 7ec44561c7d98161acfc38f2b2a0b4a3459d0045
         raise HTTPException(status_code=400, detail="Confira o recebimento de um agendamento ativo.")
     if appointment.payment_status != "pago":
         appointment.payment_status = "pago"

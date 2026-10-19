@@ -16,7 +16,11 @@ from app.config import (
     validate_runtime_config,
 )
 from app.database import Base, SessionLocal, engine, migrate_customer_accounts, migrate_payments, migrate_service_images
+<<<<<<< HEAD
 from app.routers import admin, media, public, webhooks
+=======
+from app.routers import admin, media, public
+>>>>>>> 7ec44561c7d98161acfc38f2b2a0b4a3459d0045
 from app.seed import seed_if_needed
 
 
@@ -115,7 +119,10 @@ def android_asset_links():
 app.include_router(public.router)
 app.include_router(admin.router)
 app.include_router(media.router)
+<<<<<<< HEAD
 app.include_router(webhooks.router)
+=======
+>>>>>>> 7ec44561c7d98161acfc38f2b2a0b4a3459d0045
 
 
 @app.get("/healthz", include_in_schema=False)

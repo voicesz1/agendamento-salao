@@ -1,13 +1,21 @@
+<<<<<<< HEAD
 """Payment helpers for manual Pix and Mercado Pago Checkout Pro."""
 from decimal import Decimal, ROUND_HALF_UP
 from uuid import uuid4
 
 import httpx
+=======
+"""Manual Pix instructions. This module never claims to verify a bank transfer."""
+from decimal import Decimal, ROUND_HALF_UP
+>>>>>>> 7ec44561c7d98161acfc38f2b2a0b4a3459d0045
 
 from sqlalchemy.orm import Session
 
 from app.settings_store import get_setting
+<<<<<<< HEAD
 from app.config import MERCADOPAGO_ACCESS_TOKEN, MERCADOPAGO_ENABLED, PUBLIC_BASE_URL
+=======
+>>>>>>> 7ec44561c7d98161acfc38f2b2a0b4a3459d0045
 
 
 def price_in_cents(price: float) -> int:
@@ -18,6 +26,7 @@ def pix_settings(db: Session) -> dict:
     key = get_setting(db, "pix_key").strip()
     recipient = get_setting(db, "pix_recipient").strip()
     return {"pix_available": bool(key and recipient), "pix_key": key, "pix_recipient": recipient}
+<<<<<<< HEAD
 
 
 def create_mercadopago_preference(appointment, service_name: str) -> tuple[str, str]:
@@ -72,3 +81,5 @@ def create_mercadopago_preference(appointment, service_name: str) -> tuple[str, 
         return preference_id, checkout_url
     except (httpx.HTTPError, ValueError, AttributeError) as exc:
         raise RuntimeError("Não foi possível iniciar o pagamento. Tente novamente ou escolha outra forma.") from exc
+=======
+>>>>>>> 7ec44561c7d98161acfc38f2b2a0b4a3459d0045

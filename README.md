@@ -57,6 +57,7 @@ Na confirmação, **Copiar chave Pix** copia somente a chave: a cliente abre o b
 
 O horário é reservado independentemente do pagamento, sem prazo de expiração. Reservas pendentes continuam ocupando a agenda até serem canceladas no painel. Não há exigência de sinal nem cobrança de taxa. Para exigir pré-pagamento, gerar cobranças com vencimento e confirmar automaticamente, ainda é necessário escolher um provedor Pix, configurar credenciais no servidor e implementar webhooks autenticados, idempotência e reconciliação. Nenhuma credencial de provedor foi adicionada.
 
+<<<<<<< HEAD
 ### Cartão pelo Mercado Pago (Checkout Pro)
 
 O checkout hospedado no Mercado Pago recebe os dados do cartão; o aplicativo não guarda número, validade ou código de segurança. A opção só aparece quando `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET` e uma `PUBLIC_BASE_URL` HTTPS estão configurados. Em **Vercel → projeto → Settings → Environment Variables**, adicione:
@@ -69,6 +70,8 @@ No painel do Mercado Pago Developers, configure uma notificação Webhook HTTPS 
 
 Depois de salvar as variáveis no Vercel, faça um novo deployment para elas entrarem em vigor. Comece com credenciais de teste e pagamentos de teste; para aceitar pagamentos reais, troque pelo Access Token de produção somente depois de validar e publicar a configuração de produção. Não envie tokens ou segredos por chat, nem os grave no Git. Reservas de cartão não aprovadas também ocupam o horário até que sejam canceladas no painel; não há expiração automática.
 
+=======
+>>>>>>> 7ec44561c7d98161acfc38f2b2a0b4a3459d0045
 A confirmação usa um endereço GET para evitar criar uma nova reserva ao atualizar a página. Seu acesso é restrito à sessão que fez a reserva (as dez mais recentes). Guarde os dados: o endereço não serve como link público de compartilhamento e deixa de funcionar após encerrar a sessão. As páginas de reserva e pagamento não são armazenadas pelo service worker ou pelo cache HTTP.
 
 ### Verificação local

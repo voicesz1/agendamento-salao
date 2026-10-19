@@ -7,11 +7,19 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+<<<<<<< HEAD
 from app.config import BASE_DIR, MERCADOPAGO_ENABLED, TIMEZONE
 from app.csrf import csrf_value, validate_csrf
 from app.database import get_db
 from app.models import Appointment, Service
 from app.payments import create_mercadopago_preference, pix_settings, price_in_cents
+=======
+from app.config import BASE_DIR, TIMEZONE
+from app.csrf import csrf_value, validate_csrf
+from app.database import get_db
+from app.models import Appointment, Service
+from app.payments import pix_settings, price_in_cents
+>>>>>>> 7ec44561c7d98161acfc38f2b2a0b4a3459d0045
 from app.settings_store import get_setting
 from app.slots import available_slots, now_local, slot_is_free
 from app.whatsapp import format_message, notify_owner, wa_me_link
@@ -64,7 +72,10 @@ def agendar(request: Request, servico: int | None = None, db: Session = Depends(
             "client_phone": "",
             "csrf_token": csrf_value(request),
             "payment_method": "no_local",
+<<<<<<< HEAD
             "mercadopago_enabled": MERCADOPAGO_ENABLED,
+=======
+>>>>>>> 7ec44561c7d98161acfc38f2b2a0b4a3459d0045
             **pix_settings(db),
         },
     )
@@ -108,7 +119,10 @@ def criar_agendamento(
                 "selected_day": day,
                 "csrf_token": csrf_value(request),
                 "payment_method": payment_method,
+<<<<<<< HEAD
                 "mercadopago_enabled": MERCADOPAGO_ENABLED,
+=======
+>>>>>>> 7ec44561c7d98161acfc38f2b2a0b4a3459d0045
                 **pix_settings(db),
             },
             status_code=400,
@@ -118,10 +132,15 @@ def criar_agendamento(
         return fail("Serviço indisponível.")
 
     pix = pix_settings(db)
+<<<<<<< HEAD
     if payment_method not in {"pix", "no_local", "cartao"}:
         return fail("Escolha uma forma de pagamento disponível.")
     if payment_method == "cartao" and not MERCADOPAGO_ENABLED:
         return fail("Pagamento com cartão ainda não está disponível. Escolha outra forma.")
+=======
+    if payment_method not in {"pix", "no_local"}:
+        return fail("Escolha uma forma de pagamento disponível.")
+>>>>>>> 7ec44561c7d98161acfc38f2b2a0b4a3459d0045
     if payment_method == "pix" and not pix["pix_available"]:
         return fail("O Pix ainda não está disponível. Escolha pagar no salão.")
 
@@ -186,6 +205,11 @@ def criar_agendamento(
     appointment.whatsapp_error = "" if sent else detail
     db.commit()
 
+<<<<<<< HEAD
+=======
+    recent = request.session.get("recent_appointments", [])
+    request.session["recent_appointments"] = (recent + [appointment.id])[-10:]
+>>>>>>> 7ec44561c7d98161acfc38f2b2a0b4a3459d0045
     return RedirectResponse(f"/agendamentos/{appointment.id}", status_code=303)
 
 

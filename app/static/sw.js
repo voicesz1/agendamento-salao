@@ -1,9 +1,18 @@
+<<<<<<< HEAD
 const CACHE_NAME = "salon-static-v12-mercadopago";
 const STATIC_ASSETS = [
   "/static/css/style.css?v=2026-10-16-mobile-hero",
   "/static/js/theme.js?v=2026-10-16-dark",
   "/static/js/booking.js?v=2026-10-18-mercadopago-v1",
   "/static/js/payment.js?v=2026-10-18-mercadopago-v1",
+=======
+const CACHE_NAME = "salon-static-v11-mobile-hero";
+const STATIC_ASSETS = [
+  "/static/css/style.css?v=2026-10-16-mobile-hero",
+  "/static/js/theme.js?v=2026-10-16-dark",
+  "/static/js/booking.js?v=2026-10-16-pix-v2",
+  "/static/js/payment.js?v=2026-10-16-pix-v2",
+>>>>>>> 7ec44561c7d98161acfc38f2b2a0b4a3459d0045
   "/static/js/pwa.js?v=2026-10-16-wine-v2",
   "/static/icons/brand-wine.svg",
   "/static/icons/icon-wine-192.png",
