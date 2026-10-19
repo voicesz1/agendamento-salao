@@ -1,17 +1,24 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Body, Depends, Form, HTTPException, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.config import BASE_DIR, MERCADOPAGO_ENABLED, TIMEZONE
-from app.csrf import csrf_value, validate_csrf
+from app.config import BASE_DIR, MERCADOPAGO_ENABLED, MERCADOPAGO_PUBLIC_KEY, TIMEZONE
+from app.csrf import csrf_value, validate_csrf, validate_csrf_header
 from app.database import get_db
 from app.models import Appointment, Service
-from app.payments import create_mercadopago_preference, pix_settings, price_in_cents
+from app.payments import (
+    create_mercadopago_card_payment,
+    create_mercadopago_preference,
+    MercadoPagoRequestError,
+    MercadoPagoUnavailableError,
+    pix_settings,
+    price_in_cents,
+)
 from app.settings_store import get_setting
 from app.slots import available_slots, now_local, slot_is_free
 from app.whatsapp import format_message, notify_owner, wa_me_link
@@ -170,16 +177,7 @@ def criar_agendamento(
     recent = request.session.get("recent_appointments", [])
     request.session["recent_appointments"] = (recent + [appointment.id])[-10:]
     if payment_method == "cartao":
-        try:
-            preference_id, checkout_url = create_mercadopago_preference(appointment, service.name)
-        except RuntimeError as exc:
-            appointment.status = "cancelado"
-            appointment.payment_status = "recusado"
-            db.commit()
-            return fail(str(exc))
-        appointment.mercadopago_preference_id = preference_id
-        db.commit()
-        return RedirectResponse(checkout_url, status_code=303)
+        return RedirectResponse(f"/pagamento/cartao/{appointment.id}", status_code=303)
 
     sent, detail = notify_owner(db, appointment)
     appointment.whatsapp_sent = sent
@@ -219,3 +217,124 @@ def api_horarios(servico: int, dia: date, db: Session = Depends(get_db)):
     if dia < today or dia > today + timedelta(days=20):
         return {"slots": []}
     return {"slots": available_slots(db, service, dia)}
+
+
+@router.get("/pagamento/cartao/{appointment_id}", response_class=HTMLResponse)
+def card_checkout(request: Request, appointment_id: int, db: Session = Depends(get_db)):
+    appointment = db.get(Appointment, appointment_id)
+    if not appointment or appointment_id not in request.session.get("recent_appointments", []):
+        raise HTTPException(status_code=404, detail="Agendamento não encontrado nesta sessão.")
+    if appointment.payment_method != "cartao":
+        raise HTTPException(status_code=404, detail="Pagamento com cartão não encontrado.")
+    if appointment.status == "cancelado":
+        return RedirectResponse(f"/agendamentos/{appointment.id}", status_code=303)
+    if appointment.payment_status == "pago":
+        return RedirectResponse(f"/agendamentos/{appointment.id}", status_code=303)
+    if appointment.payment_status not in {"recusado", "cancelado"} and (
+        appointment.mercadopago_payment_id or appointment.payment_provider_status == "processing"
+    ):
+        return RedirectResponse(f"/agendamentos/{appointment.id}", status_code=303)
+    if not MERCADOPAGO_ENABLED or appointment.amount_cents is None:
+        raise HTTPException(status_code=503, detail="Pagamento com cartão ainda não está configurado.")
+
+    return templates.TemplateResponse(
+        request,
+        "card_checkout.html",
+        {
+            **salon_context(db),
+            "appointment": appointment,
+            "mercadopago_public_key": MERCADOPAGO_PUBLIC_KEY,
+            "csrf_token": csrf_value(request),
+        },
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@router.post("/api/pagamentos/cartao/{appointment_id}")
+def submit_card_payment(
+    request: Request,
+    appointment_id: int,
+    form_data: dict = Body(...),
+    _csrf: None = Depends(validate_csrf_header),
+    db: Session = Depends(get_db),
+):
+    appointment = db.get(Appointment, appointment_id)
+    if not appointment or appointment_id not in request.session.get("recent_appointments", []):
+        raise HTTPException(status_code=404, detail="Agendamento não encontrado nesta sessão.")
+    if appointment.payment_method != "cartao" or appointment.status == "cancelado":
+        raise HTTPException(status_code=404, detail="Pagamento não disponível para esta reserva.")
+    confirmation_url = f"/agendamentos/{appointment.id}"
+    if appointment.payment_status == "pago":
+        return {"status": "approved", "redirect": confirmation_url}
+    if appointment.payment_status not in {"pendente", "recusado", "cancelado"}:
+        raise HTTPException(status_code=409, detail="Este pagamento não pode ser repetido.")
+    if appointment.payment_status == "pendente" and (
+        appointment.mercadopago_payment_id or appointment.payment_provider_status == "processing"
+    ):
+        return {"status": "processing", "redirect": confirmation_url}
+    if not MERCADOPAGO_ENABLED or appointment.amount_cents is None:
+        raise HTTPException(status_code=503, detail="Pagamento com cartão ainda não está configurado.")
+
+    attempts = request.session.get("mp_card_attempts", {})
+    if not isinstance(attempts, dict):
+        attempts = {}
+    attempt_key = str(appointment.id)
+    idempotency_key = attempts.get(attempt_key)
+    if not idempotency_key:
+        idempotency_key = str(uuid4())
+        attempts[attempt_key] = idempotency_key
+        request.session["mp_card_attempts"] = attempts
+
+    previous_status = appointment.payment_status
+    appointment.payment_status = "pendente"
+    appointment.payment_provider_status = "processing"
+    db.commit()
+
+    try:
+        payment = create_mercadopago_card_payment(
+            appointment, appointment.service.name, form_data, idempotency_key
+        )
+    except ValueError as exc:
+        appointment.payment_status = previous_status
+        appointment.payment_provider_status = ""
+        db.commit()
+        attempts.pop(attempt_key, None)
+        request.session["mp_card_attempts"] = attempts
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except MercadoPagoUnavailableError:
+        appointment.payment_status = previous_status
+        appointment.payment_provider_status = ""
+        db.commit()
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "Não foi possível verificar o cartão agora. Tente novamente em alguns instantes."},
+        )
+    except MercadoPagoRequestError as exc:
+        if exc.status_code < 500:
+            appointment.payment_status = previous_status
+            appointment.payment_provider_status = ""
+            db.commit()
+            attempts.pop(attempt_key, None)
+            request.session["mp_card_attempts"] = attempts
+            return JSONResponse(
+                status_code=502,
+                content={"detail": "Não foi possível iniciar o pagamento. Confira os dados e tente novamente."},
+            )
+        # The remote API may have created a payment before the network failed.
+        # Keep this attempt locked until its signed webhook updates the status.
+        return JSONResponse(
+            status_code=504,
+            content={"detail": "O Mercado Pago ainda está processando o pagamento. Atualize a página da reserva em instantes."},
+        )
+    except RuntimeError as exc:
+        return JSONResponse(status_code=504, content={"detail": str(exc)})
+
+    appointment.mercadopago_payment_id = str(payment.get("id", ""))
+    appointment.payment_status = "pago" if payment.get("status") == "approved" else "pendente"
+    appointment.payment_provider_status = str(payment.get("status_detail", ""))
+    if appointment.payment_status == "pago":
+        appointment.payment_confirmed_at = datetime.now(TIMEZONE).replace(tzinfo=None)
+    db.commit()
+
+    return {"status": payment.get("status"), "redirect": confirmation_url}
+

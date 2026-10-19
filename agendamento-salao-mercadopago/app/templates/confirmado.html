@@ -15,19 +15,25 @@
   </dl>
 
   <section class="payment-panel" id="pagamento" aria-labelledby="payment-title">
-    <p class="eyebrow">{{ 'Pix' if appointment.payment_method == 'pix' else ('Cartão pelo Mercado Pago' if appointment.payment_method == 'cartao' else 'Pagamento no estabelecimento') }}</p>
+    <p class="eyebrow">{{ 'Pix' if appointment.payment_method == 'pix' else ('Cartão de crédito · Mercado Pago' if appointment.payment_method == 'cartao' else 'Pagamento no estabelecimento') }}</p>
     {% if appointment.payment_status == 'pago' %}
-      <h2 id="payment-title">Recebimento conferido pelo salão</h2>
-      <p class="ok">O salão registrou a conferência do seu pagamento.</p>
+      <h2 id="payment-title">{{ 'Pagamento confirmado pelo Mercado Pago' if appointment.payment_method == 'cartao' else 'Recebimento conferido pelo salão' }}</h2>
+      <p class="ok">{{ 'Seu pagamento foi aprovado.' if appointment.payment_method == 'cartao' else 'O salão registrou a conferência do seu pagamento.' }}</p>
       {% if appointment.status == 'cancelado' %}<p>Combine a devolução com o salão. Cancelar a reserva não faz um estorno automático.</p>{% endif %}
     {% elif appointment.status == 'cancelado' %}
       <h2 id="payment-title">Reserva cancelada</h2><p>Não efetue o pagamento desta reserva. Se já pagou, fale com o salão.</p>
     {% elif appointment.payment_method == 'cartao' %}
-      <h2 id="payment-title">{% if appointment.payment_status == 'recusado' %}Pagamento não aprovado{% elif appointment.payment_status == 'estornado' %}Pagamento estornado{% else %}Aguardando confirmação do Mercado Pago{% endif %}</h2>
-      {% if appointment.payment_status == 'recusado' %}<p>O Mercado Pago não aprovou o pagamento. Selecione outro horário e tente novamente ou fale com o salão.</p>
-      {% elif appointment.payment_status == 'estornado' %}<p>O Mercado Pago informou um estorno. Fale com o salão se precisar de ajuda.</p>
-      {% else %}<span class="badge pending">Pagamento em processamento</span><p>O Mercado Pago está atualizando o pagamento. Esta página será atualizada quando você recarregá-la.</p>{% endif %}
-      {% if appointment.payment_provider_status %}<p class="hint">Status do provedor: {{ appointment.payment_provider_status }}</p>{% endif %}
+      {% if appointment.payment_status == 'recusado' %}
+        <h2 id="payment-title">Pagamento não aprovado</h2><p>O Mercado Pago ou o emissor do cartão não autorizou esta tentativa. Você pode tentar outro cartão. Este horário continua reservado até ser cancelado.</p>
+        <a class="btn" href="/pagamento/cartao/{{ appointment.id }}">Tentar outro cartão</a>
+      {% elif appointment.payment_status == 'cancelado' %}
+        <h2 id="payment-title">Tentativa de pagamento cancelada</h2><p>O pagamento não foi concluído. Você pode tentar novamente com um cartão de crédito.</p>
+        <a class="btn" href="/pagamento/cartao/{{ appointment.id }}">Tentar novamente</a>
+      {% elif appointment.payment_status == 'estornado' %}
+        <h2 id="payment-title">Pagamento estornado</h2><p>O Mercado Pago informou o estorno. Fale com o salão se precisar de ajuda.</p>
+      {% else %}
+        <h2 id="payment-title">Aguardando confirmação do Mercado Pago</h2><span class="badge pending">Pagamento em processamento</span><p>O Mercado Pago está atualizando o pagamento. Recarregue esta página para consultar o status.</p>
+      {% endif %}
     {% elif appointment.payment_method == 'pix' %}
       <h2 id="payment-title">Pague com Pix, com calma.</h2>
       <span class="badge pending">Aguardando conferência do salão</span>
@@ -50,5 +56,5 @@
 
   <p><a class="text-link" href="/">Voltar ao catálogo</a></p>
 </section>
-<script src="/static/js/payment.js?v=2026-10-18-mercadopago-v1" defer></script>
+<script src="/static/js/payment.js?v=2026-10-16-pix-v2" defer></script>
 {% endblock %}
