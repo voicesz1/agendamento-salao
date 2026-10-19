@@ -55,6 +55,13 @@ class BookingPaymentsTests(unittest.TestCase):
             set_setting(db, "pix_recipient", "Titular de teste")
             db.commit()
 
+    def test_database_environment_accepts_existing_vercel_name(self):
+        from app.config import database_url_from_environment
+        with patch.dict(os.environ, {"DATABASE_URL": "", "URL_DO_BANCO_DE_DADOS": " postgresql://test.invalid/salon "}):
+            self.assertEqual(database_url_from_environment(), "postgresql://test.invalid/salon")
+        with patch.dict(os.environ, {"DATABASE_URL": "sqlite:///explicit.db", "URL_DO_BANCO_DE_DADOS": "postgresql://test.invalid/salon"}):
+            self.assertEqual(database_url_from_environment(), "sqlite:///explicit.db")
+
     def test_login_csrf_recovery_and_session_lifecycle(self):
         from app.config import SESSION_MAX_AGE
         from app.routers.admin import ADMIN_LOGIN_FAILURES

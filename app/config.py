@@ -7,7 +7,15 @@ from sqlalchemy.engine import make_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 APP_ENV = os.getenv("APP_ENV", "development").strip().lower()
 IS_PRODUCTION = APP_ENV == "production"
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'salao.db'}")
+def database_url_from_environment() -> str:
+    return (
+        os.getenv("DATABASE_URL", "").strip()
+        or os.getenv("URL_DO_BANCO_DE_DADOS", "").strip()
+        or f"sqlite:///{BASE_DIR / 'salao.db'}"
+    )
+
+
+DATABASE_URL = database_url_from_environment()
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
 elif DATABASE_URL.startswith("postgresql://"):
