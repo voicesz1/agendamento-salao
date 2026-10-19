@@ -1,8 +1,8 @@
-const CACHE_NAME = "salon-static-v11-mobile-hero";
+const CACHE_NAME = "salon-static-v12-mercadopago";
 const STATIC_ASSETS = [
   "/static/css/style.css?v=2026-10-16-mobile-hero",
   "/static/js/theme.js?v=2026-10-16-dark",
-  "/static/js/booking.js?v=2026-10-16-pix-v2",
+  "/static/js/booking.js?v=2026-10-19-mercadopago",
   "/static/js/payment.js?v=2026-10-16-pix-v2",
   "/static/js/pwa.js?v=2026-10-16-wine-v2",
   "/static/icons/brand-wine.svg",

@@ -16,7 +16,7 @@ from app.config import (
     validate_runtime_config,
 )
 from app.database import Base, SessionLocal, engine, migrate_customer_accounts, migrate_payments, migrate_service_images
-from app.routers import admin, media, public
+from app.routers import admin, media, public, webhooks
 from app.seed import seed_if_needed
 
 
@@ -46,7 +46,8 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=SECRET_KEY,
     max_age=SESSION_MAX_AGE,
-    same_site="strict",
+    # The browser must retain its session when returning from Mercado Pago.
+    same_site="lax",
     https_only=SESSION_HTTPS_ONLY,
 )
 
@@ -114,6 +115,7 @@ def android_asset_links():
 app.include_router(public.router)
 app.include_router(admin.router)
 app.include_router(media.router)
+app.include_router(webhooks.router)
 
 
 @app.get("/healthz", include_in_schema=False)
