@@ -4,7 +4,20 @@ const slotsBox = document.getElementById("slots");
 const startInput = document.getElementById("start_time");
 const errorBox = document.getElementById("booking-error");
 const submitButton = document.getElementById("booking-submit");
+const submitLabel = document.getElementById("booking-submit-label");
+const paymentMethods = document.querySelectorAll('input[name="payment_method"]');
 let slotController;
+
+function selectedPaymentMethod() {
+  return document.querySelector('input[name="payment_method"]:checked')?.value;
+}
+
+function updateSubmitLabel() {
+  if (!submitLabel || submitButton.disabled) return;
+  submitLabel.textContent = selectedPaymentMethod() === "cartao"
+    ? "Continuar para o cartão"
+    : "Reservar meu horário";
+}
 
 async function loadSlots() {
   slotController?.abort();
@@ -74,6 +87,8 @@ async function loadSlots() {
 
 serviceSelect.addEventListener("change", loadSlots);
 daySelect.addEventListener("change", loadSlots);
+paymentMethods.forEach((input) => input.addEventListener("change", updateSubmitLabel));
+updateSubmitLabel();
 if (serviceSelect.value) loadSlots();
 
 document.getElementById("booking-form").addEventListener("submit", (event) => {
@@ -85,10 +100,12 @@ document.getElementById("booking-form").addEventListener("submit", (event) => {
     return;
   }
   submitButton.disabled = true;
-  submitButton.textContent = "Reservando seu horário…";
+  submitLabel.textContent = selectedPaymentMethod() === "cartao"
+    ? "Abrindo pagamento…"
+    : "Reservando seu horário…";
 });
 
 window.addEventListener("pageshow", () => {
   submitButton.disabled = false;
-  submitButton.textContent = "Reservar meu horário →";
+  updateSubmitLabel();
 });

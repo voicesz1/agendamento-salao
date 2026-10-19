@@ -61,12 +61,24 @@ async def security_headers(request: Request, call_next):
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
     if not request.url.path.startswith("/static/"):
         response.headers.setdefault("Cache-Control", "no-store")
-    response.headers.setdefault(
-        "Content-Security-Policy",
-        "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; "
-        "font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; form-action 'self'; "
-        "base-uri 'self'; frame-ancestors 'none'",
-    )
+    if request.url.path.startswith("/pagamento/cartao/"):
+        content_security_policy = (
+            "default-src 'self'; script-src 'self' https://sdk.mercadopago.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' data: https://fonts.gstatic.com https://*.mercadopago.com https://*.mlstatic.com; "
+            "img-src 'self' data: https://*.mercadopago.com https://*.mlstatic.com; "
+            "connect-src 'self' https://api.mercadopago.com https://*.mercadopago.com https://*.mlstatic.com; "
+            "frame-src https://*.mercadopago.com https://*.mercadopago.com.br https://www.mercadopago.com.br https://*.mlstatic.com; "
+            "form-action 'self' https://*.mercadopago.com https://*.mercadopago.com.br; "
+            "base-uri 'self'; frame-ancestors 'none'"
+        )
+    else:
+        content_security_policy = (
+            "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; form-action 'self'; "
+            "base-uri 'self'; frame-ancestors 'none'"
+        )
+    response.headers.setdefault("Content-Security-Policy", content_security_policy)
     if IS_PRODUCTION:
         response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
     return response

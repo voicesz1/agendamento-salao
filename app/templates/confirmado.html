@@ -24,7 +24,11 @@
       <h2 id="payment-title">Reserva cancelada</h2><p>Não efetue o pagamento desta reserva. Se já pagou, fale com o salão.</p>
     {% elif appointment.payment_method == 'cartao' %}
       {% if appointment.payment_status == 'recusado' %}
-        <h2 id="payment-title">Pagamento não aprovado</h2><p>O Mercado Pago não aprovou o pagamento. Fale com o salão para combinar outra forma; este horário continua reservado até ser cancelado.</p>
+        <h2 id="payment-title">Pagamento não aprovado</h2><p>O Mercado Pago ou o emissor do cartão não autorizou esta tentativa. Você pode tentar outro cartão. Este horário continua reservado até ser cancelado.</p>
+        <a class="btn" href="/pagamento/cartao/{{ appointment.id }}">Tentar outro cartão</a>
+      {% elif appointment.payment_status == 'cancelado' %}
+        <h2 id="payment-title">Tentativa de pagamento cancelada</h2><p>O pagamento não foi concluído. Você pode tentar novamente com um cartão de crédito.</p>
+        <a class="btn" href="/pagamento/cartao/{{ appointment.id }}">Tentar novamente</a>
       {% elif appointment.payment_status == 'estornado' %}
         <h2 id="payment-title">Pagamento estornado</h2><p>O Mercado Pago informou o estorno. Fale com o salão se precisar de ajuda.</p>
       {% else %}

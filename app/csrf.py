@@ -16,3 +16,10 @@ def validate_csrf(request: Request, csrf: str = Form(...)) -> None:
     expected = request.session.get("csrf_token", "")
     if not expected or not hmac.compare_digest(expected, csrf):
         raise HTTPException(status_code=403, detail="Requisição inválida. Atualize a página e tente novamente.")
+
+
+def validate_csrf_header(request: Request) -> None:
+    expected = request.session.get("csrf_token", "")
+    received = request.headers.get("x-csrf-token", "")
+    if not expected or not received or not hmac.compare_digest(expected, received):
+        raise HTTPException(status_code=403, detail="Requisição inválida. Atualize a página e tente novamente.")

@@ -152,9 +152,9 @@ As imagens ficam no próprio banco de dados, junto dos serviços, e entram no me
 
 ### Pagamentos
 
-Além do pagamento no salão e do Pix manual, a cliente pode escolher **Cartão de crédito**. O app cria uma sessão do Checkout Pro e redireciona a cliente ao Mercado Pago; os dados do cartão não passam pelo servidor do salão. A reserva só fica marcada como paga depois que um webhook assinado é validado e o pagamento é consultado diretamente na API do Mercado Pago.
+Além do pagamento no salão e do Pix manual, a cliente pode escolher **Cartão de crédito**. O formulário seguro do Card Payment Brick aparece no próprio site, identifica a bandeira e coleta os dados do titular, cartão, validade e CVV dentro do Mercado Pago. O checkout aceita apenas crédito e oferece de 1 a 6 parcelas. O backend recebe o token do cartão e envia a cobrança; não salva número do cartão nem CVV. A reserva só fica marcada como paga após autorização do Mercado Pago e pode ser atualizada por webhook assinado.
 
-Para habilitar o cartão, configure no Vercel, em Production, `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET` e `PUBLIC_BASE_URL` (o endereço HTTPS público do app). Use o token de produção para cobranças reais. Tokens `TEST-` usam o checkout de teste. O cartão aparece desabilitado até que as três configurações estejam presentes.
+Para habilitar o cartão, configure no Vercel, em Production, `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_PUBLIC_KEY`, `MERCADOPAGO_WEBHOOK_SECRET` e `PUBLIC_BASE_URL` (o endereço HTTPS público do app). A chave pública é usada no navegador; mantenha o Access Token e o segredo do webhook apenas como variáveis de ambiente privadas. Use credenciais de produção para cobranças reais. O cartão aparece desabilitado até que as quatro configurações estejam presentes.
 
 ### Pix manual
 

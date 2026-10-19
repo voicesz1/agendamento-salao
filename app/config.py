@@ -22,8 +22,12 @@ EMAIL_WEBHOOK_SECRET = os.getenv("EMAIL_WEBHOOK_SECRET", "").strip()
 PUBLIC_BASE_URL = (os.getenv("PUBLIC_BASE_URL") or os.getenv("RENDER_EXTERNAL_URL") or (f"https://{os.getenv('VERCEL_URL', '').strip()}" if os.getenv("VERCEL_URL", "").strip() else "")).strip().rstrip("/")
 MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN", "").strip()
 MERCADOPAGO_WEBHOOK_SECRET = os.getenv("MERCADOPAGO_WEBHOOK_SECRET", "").strip()
+MERCADOPAGO_PUBLIC_KEY = os.getenv("MERCADOPAGO_PUBLIC_KEY", "").strip()
 MERCADOPAGO_ENABLED = bool(
-    MERCADOPAGO_ACCESS_TOKEN and MERCADOPAGO_WEBHOOK_SECRET and PUBLIC_BASE_URL.startswith("https://")
+    MERCADOPAGO_ACCESS_TOKEN
+    and MERCADOPAGO_WEBHOOK_SECRET
+    and MERCADOPAGO_PUBLIC_KEY
+    and PUBLIC_BASE_URL.startswith("https://")
 )
 ANDROID_APP_PACKAGE = os.getenv("ANDROID_APP_PACKAGE", "com.atelierdasunhas.agendamento").strip()
 ANDROID_APP_SHA256_CERT_FINGERPRINT = os.getenv("ANDROID_APP_SHA256_CERT_FINGERPRINT", "").strip().upper()
