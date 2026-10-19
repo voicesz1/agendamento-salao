@@ -47,15 +47,21 @@ As imagens ficam no próprio banco de dados, junto dos serviços, e entram no me
 
 ## Operação e limites
 
-### Pagamento Pix
+### Pagamentos
+
+Além do pagamento no salão e do Pix manual, a cliente pode escolher **Cartão de crédito**. O app cria uma sessão do Checkout Pro e redireciona a cliente ao Mercado Pago; os dados do cartão não passam pelo servidor do salão. A reserva só fica marcada como paga depois que um webhook assinado é validado e o pagamento é consultado diretamente na API do Mercado Pago.
+
+Para habilitar o cartão, configure no Vercel, em Production, `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET` e `PUBLIC_BASE_URL` (o endereço HTTPS público do app). Use o token de produção para cobranças reais. Tokens `TEST-` usam o checkout de teste. O cartão aparece desabilitado até que as três configurações estejam presentes.
+
+### Pix manual
 
 Em **Painel → Configurações → Receber por Pix**, cadastre a chave copiada do banco e o nome do titular. Sem os dois campos, o Pix fica indisponível e a cliente pode escolher pagar no salão. O cadastro não valida a chave nem a titularidade no banco.
 
-Ao reservar, a cliente escolhe **Pix** ou **No salão**. O valor em centavos e, no caso do Pix, a chave e o titular são gravados na reserva. Alterar o catálogo ou a chave depois não altera esses dados nas reservas existentes. Reservas antigas continuam preservadas; valores que não foram registrados na época não são reconstruídos a partir do preço atual.
+Ao reservar, a cliente escolhe **Pix**, **Cartão de crédito** ou **No salão**. O valor em centavos e, no caso do Pix, a chave e o titular são gravados na reserva. Alterar o catálogo ou a chave depois não altera esses dados nas reservas existentes. Reservas antigas continuam preservadas; valores que não foram registrados na época não são reconstruídos a partir do preço atual.
 
 Na confirmação, **Copiar chave Pix** copia somente a chave: a cliente abre o banco, informa o valor e confere o titular. Não há QR Code, código Pix Copia e Cola de cobrança, conexão bancária ou confirmação automática. O status começa como **pendente**. A dona confere o recebimento no banco, marca **Conferi o recebimento** no painel e registra o pagamento. Cancelar a reserva não estorna o pagamento e não apaga um recebimento registrado.
 
-O horário é reservado independentemente do pagamento, sem prazo de expiração. Reservas pendentes continuam ocupando a agenda até serem canceladas no painel. Não há exigência de sinal nem cobrança de taxa. Para exigir pré-pagamento, gerar cobranças com vencimento e confirmar automaticamente, ainda é necessário escolher um provedor Pix, configurar credenciais no servidor e implementar webhooks autenticados, idempotência e reconciliação. Nenhuma credencial de provedor foi adicionada.
+O horário é reservado independentemente do pagamento, sem prazo de expiração. Reservas pendentes continuam ocupando a agenda até serem canceladas no painel. No cartão, pagamentos recusados ou abandonados também deixam a reserva ativa até a dona cancelá-la. O Mercado Pago atualiza a situação do cartão por webhook; o cancelamento do horário não realiza estorno automático.
 
 A confirmação usa um endereço GET para evitar criar uma nova reserva ao atualizar a página. Seu acesso é restrito à sessão que fez a reserva (as dez mais recentes). Guarde os dados: o endereço não serve como link público de compartilhamento e deixa de funcionar após encerrar a sessão. As páginas de reserva e pagamento não são armazenadas pelo service worker ou pelo cache HTTP.
 
