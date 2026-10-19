@@ -3,26 +3,16 @@ import hashlib
 import hmac
 import re
 from datetime import datetime
-<<<<<<< HEAD
 from decimal import Decimal, InvalidOperation
-=======
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
->>>>>>> 18a17922f68412df42a435d3021fd4f1037c0346
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-<<<<<<< HEAD
 from app.config import MERCADOPAGO_ACCESS_TOKEN, MERCADOPAGO_WEBHOOK_SECRET
 from app.database import get_db
 from app.models import Appointment
 from app.config import TIMEZONE
-=======
-from app.config import MERCADOPAGO_ACCESS_TOKEN, MERCADOPAGO_WEBHOOK_SECRET, TIMEZONE
-from app.database import get_db
-from app.models import Appointment
->>>>>>> 18a17922f68412df42a435d3021fd4f1037c0346
 
 router = APIRouter()
 
@@ -45,10 +35,6 @@ def _signature_is_valid(request: Request, data_id: str) -> bool:
 async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
     if not MERCADOPAGO_ACCESS_TOKEN or not MERCADOPAGO_WEBHOOK_SECRET:
         raise HTTPException(status_code=503, detail="Webhook de pagamento não configurado.")
-<<<<<<< HEAD
-=======
-
->>>>>>> 18a17922f68412df42a435d3021fd4f1037c0346
     data_id = request.query_params.get("data.id", "").strip()
     event_type = request.query_params.get("type", "").strip()
     if not data_id:
@@ -60,11 +46,7 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
         event_type = event_type or str(payload.get("type", "")).strip()
     if event_type not in {"payment", ""}:
         return {"received": True}
-<<<<<<< HEAD
     if not data_id or not data_id.isdigit() or not _signature_is_valid(request, data_id):
-=======
-    if not data_id.isdigit() or not _signature_is_valid(request, data_id):
->>>>>>> 18a17922f68412df42a435d3021fd4f1037c0346
         raise HTTPException(status_code=401, detail="Assinatura do webhook inválida.")
 
     try:
@@ -85,23 +67,13 @@ async def mercadopago_webhook(request: Request, db: Session = Depends(get_db)):
     appointment = db.get(Appointment, appointment_id)
     if not appointment or appointment.payment_method != "cartao":
         return {"received": True}
-<<<<<<< HEAD
-=======
-
->>>>>>> 18a17922f68412df42a435d3021fd4f1037c0346
     payment_id = str(payment.get("id", data_id))[:100]
     if appointment.payment_status == "pago" and appointment.mercadopago_payment_id != payment_id:
         return {"received": True}
     try:
-<<<<<<< HEAD
         paid_cents = int((Decimal(str(payment.get("transaction_amount"))) * 100).quantize(Decimal("1")))
     except (InvalidOperation, TypeError, ValueError):
         raise HTTPException(status_code=400, detail="Valor do pagamento inválido.")
-=======
-        paid_cents = int((Decimal(str(payment.get("transaction_amount"))) * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
-    except (InvalidOperation, TypeError, ValueError) as exc:
-        raise HTTPException(status_code=400, detail="Valor do pagamento inválido.") from exc
->>>>>>> 18a17922f68412df42a435d3021fd4f1037c0346
     if payment.get("currency_id") != "BRL" or paid_cents != appointment.amount_cents:
         raise HTTPException(status_code=400, detail="Valor ou moeda do pagamento não confere.")
 
