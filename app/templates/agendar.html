@@ -72,12 +72,11 @@
 
     <section class="booking-checkout" aria-labelledby="checkout-title">
     <h2 class="form-heading" id="checkout-title"><span>03</span> Pagamento</h2>
-    <p class="hint">Escolha pagar no estabelecimento, por Pix ou com cartão pelo Mercado Pago.</p>
+    <p class="hint">Escolha pagar no estabelecimento ou por Pix.</p>
     <fieldset class="payment-options">
       <legend>Forma de pagamento</legend>
-      <label class="payment-option"><input type="radio" name="payment_method" value="no_local" {% if payment_method == 'no_local' or payment_method not in ['pix', 'cartao'] or (payment_method == 'pix' and not pix_available) %}checked{% endif %} required><span><strong>Pagar no estabelecimento</strong><small>Reserve agora e pague no dia do atendimento.</small></span></label>
+      <label class="payment-option"><input type="radio" name="payment_method" value="no_local" {% if payment_method != 'pix' or not pix_available %}checked{% endif %} required><span><strong>Pagar no estabelecimento</strong><small>Reserve agora e pague no dia do atendimento.</small></span></label>
       <label class="payment-option {% if not pix_available %}unavailable{% endif %}"><input type="radio" name="payment_method" value="pix" {% if payment_method == 'pix' and pix_available %}checked{% endif %} {% if not pix_available %}disabled{% endif %}><span><strong>Pix (opcional)</strong><small>{% if pix_available %}Copie a chave após reservar. O salão confere o recebimento.{% else %}Disponível após o salão cadastrar a chave.{% endif %}</small></span></label>
-      <label class="payment-option {% if not mercadopago_enabled %}unavailable{% endif %}"><input type="radio" name="payment_method" value="cartao" {% if payment_method == 'cartao' and mercadopago_enabled %}checked{% endif %} {% if not mercadopago_enabled %}disabled{% endif %}><span><strong>Cartão de crédito ou débito</strong><small>{% if mercadopago_enabled %}Preencha os dados no formulário seguro do Mercado Pago, dentro deste site.{% else %}Disponível após configurar as credenciais do Mercado Pago no Vercel.{% endif %}</small></span></label>
     </fieldset>
     <div class="booking-total" aria-live="polite"><span>Valor do serviço</span><strong id="booking-total">{% if selected %}R$ {{ '%.2f'|format(selected.price)|replace('.', ',') }}{% else %}Escolha um serviço{% endif %}</strong></div>
     <p class="hint">Seu horário fica reservado ao confirmar. O pagamento é registrado separadamente.</p>

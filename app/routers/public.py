@@ -72,7 +72,6 @@ def agendar(request: Request, servico: int | None = None, db: Session = Depends(
             "client_phone": "",
             "csrf_token": csrf_value(request),
             "payment_method": "no_local",
-            "mercadopago_enabled": MERCADOPAGO_ENABLED,
             **pix_settings(db),
         },
     )
@@ -115,8 +114,7 @@ def criar_agendamento(
                 "notes": notes,
                 "selected_day": day,
                 "csrf_token": csrf_value(request),
-                "payment_method": payment_method,
-                "mercadopago_enabled": MERCADOPAGO_ENABLED,
+                "payment_method": payment_method if payment_method in {"pix", "no_local"} else "no_local",
                 **pix_settings(db),
             },
             status_code=400,
@@ -126,10 +124,8 @@ def criar_agendamento(
         return fail("Serviço indisponível.")
 
     pix = pix_settings(db)
-    if payment_method not in {"pix", "no_local", "cartao"}:
+    if payment_method not in {"pix", "no_local"}:
         return fail("Escolha uma forma de pagamento disponível.")
-    if payment_method == "cartao" and not MERCADOPAGO_ENABLED:
-        return fail("Pagamento com cartão ainda não está disponível. Escolha outra forma.")
     if payment_method == "pix" and not pix["pix_available"]:
         return fail("O Pix ainda não está disponível. Escolha pagar no salão.")
 
