@@ -43,7 +43,8 @@ def create_mercadopago_preference(appointment, service_name: str) -> tuple[str, 
             {"id": "ticket"}, {"id": "bank_transfer"}, {"id": "account_money"},
         ]},
         "metadata": {"appointment_id": appointment_id},
-        "statement_descriptor": "AGENDAMENTO SALAO",
+        # Mercado Pago limits the card statement description to 13 characters.
+        "statement_descriptor": "CRYS NAILS",
     }
     try:
         response = httpx.post(
