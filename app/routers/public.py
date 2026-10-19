@@ -7,11 +7,11 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.config import BASE_DIR, TIMEZONE
+from app.config import BASE_DIR, MERCADOPAGO_ENABLED, TIMEZONE
 from app.csrf import csrf_value, validate_csrf
 from app.database import get_db
 from app.models import Appointment, Service
-from app.payments import pix_settings, price_in_cents
+from app.payments import create_mercadopago_preference, pix_settings, price_in_cents
 from app.settings_store import get_setting
 from app.slots import available_slots, now_local, slot_is_free
 from app.whatsapp import format_message, notify_owner, wa_me_link
@@ -64,6 +64,7 @@ def agendar(request: Request, servico: int | None = None, db: Session = Depends(
             "client_phone": "",
             "csrf_token": csrf_value(request),
             "payment_method": "no_local",
+            "mercadopago_enabled": MERCADOPAGO_ENABLED,
             **pix_settings(db),
         },
     )
@@ -107,6 +108,7 @@ def criar_agendamento(
                 "selected_day": day,
                 "csrf_token": csrf_value(request),
                 "payment_method": payment_method,
+                "mercadopago_enabled": MERCADOPAGO_ENABLED,
                 **pix_settings(db),
             },
             status_code=400,
@@ -116,8 +118,10 @@ def criar_agendamento(
         return fail("Serviço indisponível.")
 
     pix = pix_settings(db)
-    if payment_method not in {"pix", "no_local"}:
+    if payment_method not in {"pix", "no_local", "cartao"}:
         return fail("Escolha uma forma de pagamento disponível.")
+    if payment_method == "cartao" and not MERCADOPAGO_ENABLED:
+        return fail("Pagamento com cartão ainda não está disponível. Escolha outra forma.")
     if payment_method == "pix" and not pix["pix_available"]:
         return fail("O Pix ainda não está disponível. Escolha pagar no salão.")
 
@@ -162,6 +166,24 @@ def criar_agendamento(
     db.add(appointment)
     db.commit()
     db.refresh(appointment)
+
+    if payment_method == "cartao":
+        try:
+            preference_id, checkout_url = create_mercadopago_preference(appointment, service.name)
+        except RuntimeError as exc:
+            appointment.status = "cancelado"
+            appointment.payment_status = "recusado"
+            db.commit()
+            return fail(str(exc))
+        appointment.mercadopago_preference_id = preference_id
+        db.commit()
+        sent, detail = notify_owner(db, appointment)
+        appointment.whatsapp_sent = sent
+        appointment.whatsapp_error = "" if sent else detail
+        db.commit()
+        recent = request.session.get("recent_appointments", [])
+        request.session["recent_appointments"] = (recent + [appointment.id])[-10:]
+        return RedirectResponse(checkout_url, status_code=303)
 
     sent, detail = notify_owner(db, appointment)
     appointment.whatsapp_sent = sent
