@@ -1,0 +1,17 @@
+services:
+  agendamento-salao:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APP_ENV: production
+      DATABASE_URL: sqlite:////data/salao.db
+      SESSION_HTTPS_ONLY: "true"
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - salao_data:/data
+
+volumes:
+  salao_data:

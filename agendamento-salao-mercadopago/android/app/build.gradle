@@ -1,0 +1,61 @@
+plugins {
+    id "com.android.application"
+}
+
+def signingPropertiesFile = rootProject.file("keystore.properties")
+def signingProperties = new Properties()
+if (signingPropertiesFile.exists()) {
+    signingProperties.load(new FileInputStream(signingPropertiesFile))
+}
+
+android {
+    namespace "com.atelierdasunhas.agendamento"
+    compileSdk 36
+
+    flavorDimensions += "perfil"
+    productFlavors {
+        cliente {
+            dimension "perfil"
+        }
+        admin {
+            dimension "perfil"
+            applicationIdSuffix ".admin"
+        }
+    }
+
+    aaptOptions {
+        cruncherEnabled = false
+    }
+
+    defaultConfig {
+        applicationId "com.atelierdasunhas.agendamento"
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    signingConfigs {
+        if (signingPropertiesFile.exists()) {
+            release {
+                storeFile rootProject.file(signingProperties["storeFile"])
+                storePassword signingProperties["storePassword"]
+                keyAlias signingProperties["keyAlias"]
+                keyPassword signingProperties["keyPassword"]
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            if (signingPropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
+            minifyEnabled false
+        }
+    }
+}
+
+dependencies {
+    implementation "com.google.androidbrowserhelper:androidbrowserhelper:2.7.3"
+}

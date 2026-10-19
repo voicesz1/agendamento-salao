@@ -1,0 +1,64 @@
+{% extends "admin/layout.html" %}
+{% block title %}Horários{% endblock %}
+{% block content %}
+{% if error %}<p class="alert">Confira os horários e intervalos informados e tente novamente.</p>{% endif %}
+<h1>Funcionamento do salão</h1>
+<p class="lede">O cliente só vê horários dentro desses períodos, fora da pausa e sem conflito com agendamentos confirmados.</p>
+
+<form method="post" action="/admin/horarios" class="booking">
+  <input type="hidden" name="csrf" value="{{ csrf_token }}">
+  <label>Intervalo entre horários (minutos)
+    <input type="number" name="slot_interval_minutes" value="{{ interval }}" min="15" max="60" step="15">
+  </label>
+
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Dia</th>
+        <th>Aberto</th>
+        <th>Abre</th>
+        <th>Fecha</th>
+        <th>Pausa início</th>
+        <th>Pausa fim</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in hours %}
+      <tr>
+        <td>{{ weekdays[row.weekday] }}</td>
+        <td><input type="checkbox" name="open_{{ row.weekday }}" {% if row.is_open %}checked{% endif %}></td>
+        <td><input type="time" name="start_{{ row.weekday }}" value="{{ row.open_time.strftime('%H:%M') }}"></td>
+        <td><input type="time" name="end_{{ row.weekday }}" value="{{ row.close_time.strftime('%H:%M') }}"></td>
+        <td><input type="time" name="break_start_{{ row.weekday }}" value="{% if row.break_start %}{{ row.break_start.strftime('%H:%M') }}{% endif %}"></td>
+        <td><input type="time" name="break_end_{{ row.weekday }}" value="{% if row.break_end %}{{ row.break_end.strftime('%H:%M') }}{% endif %}"></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <button class="btn" type="submit">Salvar horários</button>
+</form>
+
+<h2>Folgas e fechamentos</h2>
+<form method="post" action="/admin/folgas" class="booking inline">
+  <input type="hidden" name="csrf" value="{{ csrf_token }}">
+  <label>Data <input type="date" name="day" required></label>
+  <label>Motivo <input name="reason" placeholder="Feriado, folga..."></label>
+  <button class="btn ghost" type="submit">Bloquear dia</button>
+</form>
+
+<ul class="plain">
+  {% for item in closed %}
+  <li>
+    {{ item.day.strftime('%d/%m/%Y') }} — {{ item.reason }}
+    <form method="post" action="/admin/folgas/{{ item.id }}/excluir" class="inline-form">
+      <input type="hidden" name="csrf" value="{{ csrf_token }}">
+      <button class="linkish" type="submit">Remover</button>
+    </form>
+  </li>
+  {% else %}
+  <li>Nenhum dia bloqueado.</li>
+  {% endfor %}
+</ul>
+{% endblock %}
