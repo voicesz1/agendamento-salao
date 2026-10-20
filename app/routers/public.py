@@ -40,16 +40,60 @@ def salon_context(db: Session) -> dict:
     }
 
 
+def homepage_photo(service: Service, fallback_index: int = 0) -> str:
+    name = service.name.casefold()
+    category = service.category.casefold()
+    if "pedicure" in name or "pé" in name:
+        return "pedicure.webp"
+    if any(term in name for term in ("nail art", "arte", "decora", "desenho")):
+        return "nail-art.webp"
+    if "manicure" in name:
+        return "manicure.webp"
+    if "pedicure" in category and "manicure" not in category:
+        return "pedicure.webp"
+    if any(term in category for term in ("nail art", "arte", "decora")):
+        return "nail-art.webp"
+    return ("manicure.webp", "pedicure.webp", "nail-art.webp")[fallback_index % 3]
+
+
 @router.get("/", response_class=HTMLResponse)
 def home(request: Request, db: Session = Depends(get_db)):
     services = db.query(Service).filter(Service.active.is_(True)).order_by(Service.category, Service.name).all()
     grouped: dict[str, list[Service]] = defaultdict(list)
     for service in services:
         grouped[service.category].append(service)
+    featured = []
+    seen_categories = set()
+    for service in services:
+        if service.category not in seen_categories:
+            featured.append(service)
+            seen_categories.add(service.category)
+        if len(featured) == 3:
+            break
+    if len(featured) < 3:
+        featured_ids = {service.id for service in featured}
+        featured.extend(service for service in services if service.id not in featured_ids and len(featured) < 3)
+    owner_phone = get_setting(db, "owner_whatsapp")
+    whatsapp_url = wa_me_link(owner_phone, "Olá! Gostaria de saber mais sobre os serviços do salão.") if owner_phone else ""
     return templates.TemplateResponse(
         request,
         "index.html",
-        {**salon_context(db), "grouped": grouped},
+        {
+            **salon_context(db),
+            "grouped": grouped,
+            "featured_services": [
+                {
+                    "service": service,
+                    "image_url": (
+                        f"/media/servicos/{service.id}/{service.image_revision}.jpg"
+                        if service.image_revision else f"/static/images/{homepage_photo(service, index)}"
+                    ),
+                }
+                for index, service in enumerate(featured)
+            ],
+            "service_photos": {service.id: homepage_photo(service, index) for index, service in enumerate(services)},
+            "whatsapp_url": whatsapp_url,
+        },
     )
 
 

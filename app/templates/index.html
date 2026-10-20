@@ -1,55 +1,101 @@
 {% extends "base.html" %}
-{% block title %}{{ salon_name }} · Serviços{% endblock %}
+{% block title %}{{ salon_name }} · Beleza em cada detalhe{% endblock %}
 {% block content %}
-<section class="hero">
-  <div class="hero-copy">
-  <p class="eyebrow">Um cuidado que combina com você</p>
-  <h1>Seu momento.<br><em>Seu estilo.</em></h1>
-  {% if salon_tagline %}
-  <p class="lede">{{ salon_tagline }}</p>
-  {% else %}
-  <p class="lede">Seu momento de cuidado, com a tranquilidade de um horário reservado para você.</p>
-  {% endif %}
-    <div class="hero-actions">
-      <a class="btn" href="/agendar">Agendar meu horário <svg class="ui-icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
-      <a class="hero-secondary" href="#servicos">Explorar serviços ↗</a>
+<section class="home-hero" id="inicio" aria-labelledby="home-title">
+  <div class="home-hero-inner">
+    <div class="home-hero-copy">
+      <p class="eyebrow">Beleza em cada detalhe <span aria-hidden="true"></span></p>
+      <h1 id="home-title">Suas unhas,<br>a sua <em>melhor versão.</em></h1>
+      <p class="home-lede">Mais que unhas: autoestima, cuidado e estilo. No <strong>{{ salon_name }}</strong>, cada detalhe é pensado para realçar o que faz você única.</p>
+      <div class="home-actions">
+        <a class="btn home-primary" href="/agendar"><svg class="ui-icon" aria-hidden="true"><use href="#i-calendar"/></svg>Agende seu horário<svg class="ui-icon home-arrow" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+        {% if whatsapp_url %}<a class="home-whatsapp" href="{{ whatsapp_url }}" target="_blank" rel="noopener"><span class="whatsapp-mark" aria-hidden="true">☎</span><span>Fale conosco<br><strong>pelo WhatsApp</strong></span></a>{% endif %}
+      </div>
+      <ul class="home-promises" aria-label="Diferenciais do salão">
+        <li><span class="promise-icon" aria-hidden="true">◇</span><span>Atendimento<br><strong>personalizado</strong></span></li>
+        <li><span class="promise-icon" aria-hidden="true">❀</span><span>Ambiente confortável<br><strong>e acolhedor</strong></span></li>
+        <li><span class="promise-icon" aria-hidden="true">♧</span><span>Produtos de<br><strong>alta qualidade</strong></span></li>
+      </ul>
     </div>
-    <p class="hero-note"><svg class="ui-icon" aria-hidden="true"><use href="#i-check"/></svg>Escolha seu cuidado. Reserve no seu tempo.</p>
-  </div>
-  <div class="style-card" aria-hidden="true">
-    <p>ATELIER · CORES &amp; FORMAS</p>
-    <div class="nail-palette"><span></span><span></span><span></span></div>
-    <div><h2>Um toque de você.</h2><small>Detalhes que expressam seu estilo.</small></div>
+    <span class="hero-signature" aria-hidden="true">Beleza<br><em>que inspira</em>♡</span>
   </div>
 </section>
 
-<section class="catalog-intro" id="servicos">
-  <div><p class="eyebrow">Encontre seu próximo cuidado</p>
-  <h2>O que vamos fazer hoje?</h2></div>
-  <p>Veja os serviços e encontre o melhor horário para você.</p>
-</section>
-<nav class="category-nav" aria-label="Categorias de serviços">
-  {% for category in grouped %}<a href="#categoria-{{ loop.index }}">{{ category }}</a>{% endfor %}
-</nav>
-{% for category, services in grouped.items() %}
-<section class="catalog" id="categoria-{{ loop.index }}">
-  <div class="catalog-heading"><h2>{{ category }}</h2><small>{{ services|length }} {{ 'opção' if services|length == 1 else 'opções' }}</small></div>
-  <div class="cards">
-    {% for service in services %}
-    <article class="card">
-      {% if service.image_revision %}<img class="service-image" src="/media/servicos/{{ service.id }}/{{ service.image_revision }}.jpg" alt="Foto ilustrativa de {{ service.name }}" width="640" height="400" loading="lazy" decoding="async">{% endif %}
-      <div class="card-top">
+<section class="home-services" id="servicos" aria-labelledby="services-title">
+  <div class="services-intro">
+    <p class="eyebrow">Nossos serviços <span aria-hidden="true"></span></p>
+    <h2 id="services-title">Cuidado completo<br>para você</h2>
+    <p>Do básico ao artístico, encontre o cuidado ideal e reserve seu horário com praticidade.</p>
+    <a class="btn home-outline" href="#todos-servicos">Ver todos os serviços <svg class="ui-icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+  </div>
+  <div class="showcase-grid" id="galeria" aria-label="Serviços em destaque">
+    {% for item in featured_services %}
+    {% set service = item.service %}
+    <article class="showcase-card">
+      <a class="showcase-photo" href="/agendar?servico={{ service.id }}" aria-label="Ver horários para {{ service.name }}">
+        <img src="{{ item.image_url }}" alt="{{ service.name }}" width="640" height="420" {% if not loop.first %}loading="lazy"{% endif %} decoding="async">
+        <span class="showcase-symbol" aria-hidden="true">{% if 'ped' in (service.name ~ ' ' ~ service.category)|lower %}♧{% elif 'art' in (service.name ~ ' ' ~ service.category)|lower or 'decora' in (service.name ~ ' ' ~ service.category)|lower %}✧{% else %}♧{% endif %}</span>
+      </a>
+      <div class="showcase-content">
+        <p class="showcase-category">{{ service.category }}</p>
         <h3>{{ service.name }}</h3>
-        <p class="price">R$ {{ '%.2f'|format(service.price)|replace('.', ',') }}</p>
+        <p>{{ service.description or 'Cuidado e acabamento feitos com atenção para você.' }}</p>
+        <div class="showcase-bottom"><span>R$ {{ '%.2f'|format(service.price)|replace('.', ',') }} · {{ service.duration_minutes }} min</span><a href="/agendar?servico={{ service.id }}">Saiba mais <span aria-hidden="true">→</span></a></div>
       </div>
-      <p class="service-description">{{ service.description }}</p>
-      <div class="service-bottom"><span class="meta"><svg class="ui-icon" aria-hidden="true"><use href="#i-clock"/></svg>{{ service.duration_minutes }} min</span>
-      <a class="btn" href="/agendar?servico={{ service.id }}" aria-label="Agendar {{ service.name }}">Escolher <span aria-hidden="true">→</span></a></div>
     </article>
+    {% else %}
+    <p class="empty-services">Os serviços estarão disponíveis em breve. Entre em contato para saber mais.</p>
     {% endfor %}
   </div>
 </section>
-{% endfor %}
+
+<section class="home-about" id="sobre" aria-labelledby="about-title">
+  <div class="about-photo"><img src="/static/images/studio.webp" alt="Ambiente acolhedor preparado para receber você" width="760" height="600" loading="lazy" decoding="async"></div>
+  <div class="about-copy">
+    <p class="eyebrow">Sobre o {{ salon_name }} <span aria-hidden="true"></span></p>
+    <h2 id="about-title">Mais que um salão,<br>um espaço para você brilhar</h2>
+    <p>Um lugar feito para você desacelerar, se cuidar e sair ainda mais confiante. Cada atendimento combina atenção aos detalhes, conforto e técnicas cuidadosas.</p>
+    <a class="btn about-button" href="/agendar">Conheça nossos serviços <svg class="ui-icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+  </div>
+  <ul class="about-values">
+    <li><span aria-hidden="true">♡</span><div><strong>Beleza com propósito</strong><small>Seu estilo merece atenção.</small></div></li>
+    <li><span aria-hidden="true">◇</span><div><strong>Qualidade em cada detalhe</strong><small>Cuidado em cada etapa.</small></div></li>
+    <li><span aria-hidden="true">❀</span><div><strong>Um momento só seu</strong><small>Mais que um serviço, uma pausa.</small></div></li>
+  </ul>
+</section>
+
+<section class="all-services" id="todos-servicos" aria-labelledby="all-services-title">
+  <div class="catalog-intro">
+    <div><p class="eyebrow">Encontre seu próximo cuidado</p><h2 id="all-services-title">Todos os serviços</h2></div>
+    <p>Escolha seu serviço e veja os horários disponíveis.</p>
+  </div>
+  <nav class="category-nav" aria-label="Categorias de serviços">
+    {% for category in grouped %}<a href="#categoria-{{ loop.index }}">{{ category }}</a>{% endfor %}
+  </nav>
+  {% for category, services in grouped.items() %}
+  <section class="catalog" id="categoria-{{ loop.index }}">
+    <div class="catalog-heading"><h3>{{ category }}</h3><small>{{ services|length }} {{ 'opção' if services|length == 1 else 'opções' }}</small></div>
+    <div class="cards">
+      {% for service in services %}
+      <article class="card">
+        <img class="service-image" src="{% if service.image_revision %}/media/servicos/{{ service.id }}/{{ service.image_revision }}.jpg{% else %}/static/images/{{ service_photos[service.id] }}{% endif %}" alt="{{ service.name }}" width="640" height="400" loading="lazy" decoding="async">
+        <div class="card-top"><h3>{{ service.name }}</h3><p class="price">R$ {{ '%.2f'|format(service.price)|replace('.', ',') }}</p></div>
+        {% if service.description %}<p class="service-description">{{ service.description }}</p>{% endif %}
+        <div class="service-bottom"><span class="meta"><svg class="ui-icon" aria-hidden="true"><use href="#i-clock"/></svg>{{ service.duration_minutes }} min</span><a class="btn" href="/agendar?servico={{ service.id }}">Agendar <span aria-hidden="true">→</span></a></div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+</section>
+
+<section class="home-feedback" id="depoimentos" aria-labelledby="feedback-title">
+  <p class="eyebrow">Sua experiência importa</p>
+  <h2 id="feedback-title">Seu momento merece ser lembrado.</h2>
+  <p>Depois do atendimento, conte para nós como foi sua experiência. Vamos adorar ouvir você.</p>
+  {% if whatsapp_url %}<a class="text-link" href="{{ whatsapp_url }}" target="_blank" rel="noopener">Compartilhe sua experiência <span aria-hidden="true">→</span></a>{% else %}<a class="text-link" href="/agendar">Agende seu horário <span aria-hidden="true">→</span></a>{% endif %}
+</section>
+
 <section class="app-banner" aria-labelledby="app-banner-title">
   <div><h2 id="app-banner-title">Seu cuidado, sempre por perto.</h2><p>Tenha o salão na tela inicial do seu Android.</p></div>
   <div class="app-banner-actions"><button type="button" class="btn" data-install-app>Instalar aplicativo <span aria-hidden="true">↓</span></button>
