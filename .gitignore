@@ -6,3 +6,5 @@ __pycache__/
 .env
 .tmp/
 .DS_Store
+.vercel
+.env*
