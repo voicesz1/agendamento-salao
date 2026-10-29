@@ -8,7 +8,7 @@
   <p class="lede">Escolha o serviço, o horário e informe seu nome e WhatsApp.</p>
   <ol class="booking-steps" aria-label="Etapas da reserva"><li>Seu cuidado</li><li>Dia e horário</li><li>Pagamento</li></ol>
   {% if error %}
-  <p class="alert">{{ error }}</p>
+  <p class="alert" role="alert">{{ error }}</p>
   {% endif %}
 
   <form method="post" action="/agendar" class="booking booking-layout" id="booking-form">
@@ -78,6 +78,12 @@
       <label class="payment-option"><input type="radio" name="payment_method" value="no_local" {% if payment_method != 'pix' or not pix_available %}checked{% endif %} required><span><strong>Pagar no estabelecimento</strong><small>Reserve agora e pague no dia do atendimento.</small></span></label>
       <label class="payment-option {% if not pix_available %}unavailable{% endif %}"><input type="radio" name="payment_method" value="pix" {% if payment_method == 'pix' and pix_available %}checked{% endif %} {% if not pix_available %}disabled{% endif %}><span><strong>Pix (opcional)</strong><small>{% if pix_available %}Copie a chave após reservar. O salão confere o recebimento.{% else %}Disponível após o salão cadastrar a chave.{% endif %}</small></span></label>
     </fieldset>
+    <div class="booking-review" aria-live="polite">
+      <h3>Confira sua reserva</h3>
+      <p id="booking-review-service">{% if selected %}{{ selected.name }}{% else %}Escolha um serviço{% endif %}</p>
+      <p id="booking-review-time" class="hint">Escolha o dia e um horário disponível.</p>
+      <p id="booking-review-payment" class="hint">Pagamento no salão.</p>
+    </div>
     <div class="booking-total" aria-live="polite"><span>Valor do serviço</span><strong id="booking-total">{% if selected %}R$ {{ '%.2f'|format(selected.price)|replace('.', ',') }}{% else %}Escolha um serviço{% endif %}</strong></div>
     <p class="hint">Seu horário fica reservado ao confirmar. O pagamento é registrado separadamente.</p>
     <p class="alert" id="booking-error" role="alert" hidden></p>
@@ -85,5 +91,5 @@
     </section>
   </form>
 </section>
-<script src="/static/js/booking.js?v=2026-10-18-mercadopago-v1"></script>
+<script src="/static/js/booking.js?v=2026-10-29-simple-booking"></script>
 {% endblock %}

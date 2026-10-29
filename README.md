@@ -4,6 +4,14 @@ Aplicativo de agendamento para salão de unhas, com catálogo ilustrado, horári
 
 ## Executar localmente
 
+### Agenda e conferência da reserva
+
+O painel abre na agenda de hoje, com atendimentos em ordem de horário. Use **Próximos atendimentos** para planejar a agenda ou **Todo o histórico** para consultar reservas antigas. A busca pelo nome e os filtros de status apenas consultam registros; não alteram nem removem agendamentos. No celular, cada atendimento aparece em um cartão com os dados e as ações de pagamento e status.
+
+Antes de confirmar, a cliente vê um resumo do serviço, data, horário, preço e forma de pagamento. Pix e pagamento no salão continuam disponíveis conforme a configuração existente.
+
+Essas melhorias não exigem migração de banco. Antes de publicar, confirme a conexão com o banco que contém os agendamentos reais e verifique um backup recuperável. Não substitua essa conexão por um banco vazio. As verificações locais usam somente bancos descartáveis.
+
 Requer Python 3.10 ou mais recente.
 
 ```powershell

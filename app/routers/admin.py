@@ -121,15 +121,31 @@ def logout(request: Request, _csrf: None = Depends(validate_csrf)):
 
 
 @router.get("", response_class=HTMLResponse)
-def dashboard(request: Request, status: str = "todos", db: Session = Depends(get_db)):
+def dashboard(request: Request, status: str = "todos", periodo: str = "hoje", busca: str = "", db: Session = Depends(get_db)):
     if (redirect := require_admin(request)):
         return redirect
-    query = db.query(Appointment).options(joinedload(Appointment.service)).order_by(
-        Appointment.day.desc(), Appointment.start_time.desc()
-    )
+    today = datetime.now(TIMEZONE).date()
+    if periodo not in {"hoje", "proximos", "todos"}:
+        periodo = "hoje"
+    if status not in {"todos", "confirmado", "cancelado"}:
+        status = "todos"
+    busca = busca.strip()[:120]
+    query = db.query(Appointment).options(joinedload(Appointment.service))
+    if periodo == "hoje":
+        query = query.filter(Appointment.day == today)
+    elif periodo == "proximos":
+        query = query.filter(Appointment.day >= today)
+    if busca:
+        query = query.filter(Appointment.client_name.icontains(busca, autoescape=True))
+    counts = {
+        "todos": query.count(),
+        "confirmado": query.filter(Appointment.status == "confirmado").count(),
+        "cancelado": query.filter(Appointment.status == "cancelado").count(),
+    }
     if status in {"confirmado", "cancelado"}:
         query = query.filter(Appointment.status == status)
-    appointments = query.all()
+    ordering = (Appointment.day.desc(), Appointment.start_time.desc()) if periodo == "todos" else (Appointment.day.asc(), Appointment.start_time.asc())
+    appointments = query.order_by(*ordering).all()
     return templates.TemplateResponse(
         request,
         "admin/dashboard.html",
@@ -138,11 +154,10 @@ def dashboard(request: Request, status: str = "todos", db: Session = Depends(get
             "appointments": appointments,
             "csrf_token": csrf_value(request),
             "status": status,
-            "counts": {
-                "todos": db.query(Appointment).count(),
-                "confirmado": db.query(Appointment).filter(Appointment.status == "confirmado").count(),
-                "cancelado": db.query(Appointment).filter(Appointment.status == "cancelado").count(),
-            },
+            "periodo": periodo,
+            "busca": busca,
+            "today": today,
+            "counts": counts,
         },
     )
 

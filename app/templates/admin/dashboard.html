@@ -2,17 +2,31 @@
 {% block title %}Agendamentos{% endblock %}
 {% block content %}
 <h1>Agendamentos</h1>
+<p class="hint">{{ today.strftime('%d/%m/%Y') }} · Consulte os atendimentos e registre os pagamentos em um só lugar.</p>
+<form method="get" action="/admin" class="agenda-search">
+  <label>Ver agenda
+    <select name="periodo">
+      <option value="hoje" {% if periodo == 'hoje' %}selected{% endif %}>Hoje</option>
+      <option value="proximos" {% if periodo == 'proximos' %}selected{% endif %}>Próximos atendimentos</option>
+      <option value="todos" {% if periodo == 'todos' %}selected{% endif %}>Todo o histórico</option>
+    </select>
+  </label>
+  <label>Buscar cliente<input type="search" name="busca" value="{{ busca }}" maxlength="120" placeholder="Nome da cliente"></label>
+  <input type="hidden" name="status" value="{{ status }}">
+  <button class="btn" type="submit">Consultar</button>
+  <a class="text-link" href="/admin">Limpar filtros</a>
+</form>
 <div class="filters">
-  <a class="{% if status == 'todos' %}on{% endif %}" href="/admin">Todos ({{ counts.todos }})</a>
-  <a class="{% if status == 'confirmado' %}on{% endif %}" href="/admin?status=confirmado">Confirmados ({{ counts.confirmado }})</a>
-  <a class="{% if status == 'cancelado' %}on{% endif %}" href="/admin?status=cancelado">Cancelados ({{ counts.cancelado }})</a>
+  {% for value, label in [('todos', 'Todos'), ('confirmado', 'Confirmados'), ('cancelado', 'Cancelados')] %}
+  <a class="{% if status == value %}on{% endif %}" href="/admin?periodo={{ periodo }}&amp;busca={{ busca|urlencode }}&amp;status={{ value }}">{{ label }} ({{ counts[value] }})</a>
+  {% endfor %}
 </div>
 
 {% if not appointments %}
-<p class="hint">Nenhum agendamento neste filtro.</p>
+<p class="hint">Nenhum agendamento neste filtro. Para consultar reservas antigas, escolha <strong>Todo o histórico</strong>.</p>
 {% else %}
 <div class="table-wrap">
-<table>
+<table class="appointments-table">
   <thead>
     <tr>
       <th>Data</th>
@@ -28,13 +42,13 @@
   <tbody>
     {% for item in appointments %}
     <tr class="{{ item.status }}">
-      <td>{{ item.day.strftime('%d/%m/%Y') }}</td>
-      <td>{{ item.start_time.strftime('%H:%M') }}–{{ item.end_time.strftime('%H:%M') }}</td>
-      <td>{{ item.service.name }}<br><small>{% if item.amount_cents is not none %}R$ {{ '%.2f'|format(item.amount_cents / 100)|replace('.', ',') }}{% else %}Valor histórico não registrado{% endif %}</small></td>
-      <td>{{ item.client_name }}<br><small>{{ item.client_phone }}</small></td>
-      <td><span class="badge {{ item.status }}">{{ item.status }}</span></td>
-      <td>{% if item.whatsapp_sent %}enviado{% else %}pendente{% endif %}</td>
-      <td>
+      <td data-label="Data">{{ item.day.strftime('%d/%m/%Y') }}</td>
+      <td data-label="Horário">{{ item.start_time.strftime('%H:%M') }}–{{ item.end_time.strftime('%H:%M') }}</td>
+      <td data-label="Serviço">{{ item.service.name }}<br><small>{% if item.amount_cents is not none %}R$ {{ '%.2f'|format(item.amount_cents / 100)|replace('.', ',') }}{% else %}Valor histórico não registrado{% endif %}</small></td>
+      <td data-label="Cliente">{{ item.client_name }}<br><small>{{ item.client_phone }}</small>{% if item.notes %}<p class="hint">Observação: {{ item.notes }}</p>{% endif %}</td>
+      <td data-label="Status"><span class="badge {{ item.status }}">{{ item.status }}</span></td>
+      <td data-label="Aviso no WhatsApp">{% if item.whatsapp_sent %}enviado{% else %}pendente{% endif %}</td>
+      <td data-label="Pagamento">
         <strong>{{ 'Pix' if item.payment_method == 'pix' else ('Cartão (Mercado Pago)' if item.payment_method == 'cartao' else 'No salão') }}</strong><br>
         {% if item.payment_status == 'pago' %}
           <span class="badge confirmado">Recebimento conferido</span>
@@ -51,7 +65,7 @@
         {% endif %}
         {% if item.status == 'cancelado' and item.payment_status == 'pago' %}<p class="hint">Cancelamento não estorna o pagamento. Combine a devolução com a cliente.</p>{% endif %}
       </td>
-      <td>
+      <td data-label="Ações">
         {% if item.status == 'confirmado' %}
         <form method="post" action="/admin/agendamentos/{{ item.id }}/status">
           <input type="hidden" name="csrf" value="{{ csrf_token }}">

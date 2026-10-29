@@ -656,3 +656,17 @@ code { background: var(--banner-bg); padding: 0.15rem 0.35rem; border-radius: 0.
   .home-promises li:last-child { grid-column: 1 / -1; }
   .showcase-card { grid-template-columns: 7.4rem minmax(0, 1fr); }
 }
+.agenda-search { display: flex; align-items: end; flex-wrap: wrap; gap: 1rem; margin: 1.25rem 0; }
+.agenda-search label { display: grid; gap: .4rem; flex: 1 1 12rem; }
+.agenda-search select, .agenda-search input { width: 100%; min-height: 44px; }
+.booking-review { padding: 1rem; border: 1px solid var(--line); border-radius: .8rem; margin-top: 1rem; }
+.booking-review h3 { margin-top: 0; }
+@media (max-width: 600px) { .agenda-search { align-items: stretch; } .agenda-search .btn { width: 100%; } }
+@media (max-width: 700px) {
+  .table-wrap .appointments-table { min-width: 0; }
+  .appointments-table, .appointments-table tbody, .appointments-table tr, .appointments-table td { display: block; width: 100%; min-width: 0; }
+  .appointments-table thead { display: none; }
+  .appointments-table tr { margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--line); border-radius: 1rem; }
+  .appointments-table td { overflow-wrap: anywhere; padding: .55rem 0; }
+  .appointments-table td::before { content: attr(data-label); display: block; font-size: .75rem; font-weight: 700; margin-bottom: .25rem; }
+}

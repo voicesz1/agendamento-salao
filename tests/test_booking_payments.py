@@ -36,6 +36,43 @@ def tearDownModule():
 
 
 class BookingPaymentsTests(unittest.TestCase):
+    def test_agenda_filters_keep_history_and_do_not_modify_bookings(self):
+        self.assertEqual(self.book(client_name="Cliente futura").status_code, 303)
+        with SessionLocal() as db:
+            future = db.query(Appointment).one()
+            today = Appointment(
+                service_id=self.service_id, client_name="Cliente de hoje", client_phone="11988887777",
+                day=now_local().date(), start_time=future.start_time, end_time=future.end_time,
+                created_at=now_local().replace(tzinfo=None), status="confirmado", amount_cents=3500,
+            )
+            historical = Appointment(
+                service_id=self.service_id, client_name="Cliente antiga", client_phone="11988887777",
+                day=now_local().date() - timedelta(days=2), start_time=future.start_time, end_time=future.end_time,
+                created_at=now_local().replace(tzinfo=None), status="cancelado", amount_cents=3500,
+            )
+            db.add_all([today, historical])
+            db.commit()
+            snapshot = [(a.id, a.client_name, a.day, a.status, a.amount_cents) for a in db.query(Appointment).order_by(Appointment.id)]
+        self.login_admin()
+        result = self.client.get("/admin")
+        self.assertIn("Cliente de hoje", result.text)
+        self.assertNotIn("Cliente futura", result.text)
+        self.assertNotIn("Cliente antiga", result.text)
+        result = self.client.get("/admin?periodo=proximos")
+        self.assertIn("Cliente futura", result.text)
+        self.assertNotIn("Cliente antiga", result.text)
+        result = self.client.get("/admin?periodo=todos&status=cancelado&busca=antiga")
+        self.assertIn("Cliente antiga", result.text)
+        self.assertNotIn("Cliente futura", result.text)
+        self.assertIn("Cancelados (1)", result.text)
+        # Search wildcards are literal, never a way to select every record.
+        self.assertNotIn("Cliente futura", self.client.get("/admin?periodo=todos&busca=%25").text)
+        result = self.client.get("/admin?periodo=todos")
+        for name in ("Cliente de hoje", "Cliente futura", "Cliente antiga"):
+            self.assertIn(name, result.text)
+        with SessionLocal() as db:
+            self.assertEqual(snapshot, [(a.id, a.client_name, a.day, a.status, a.amount_cents) for a in db.query(Appointment).order_by(Appointment.id)])
+
     def setUp(self):
         Base.metadata.drop_all(engine)
         self.client = TestClient(app)
@@ -113,9 +150,7 @@ class BookingPaymentsTests(unittest.TestCase):
 
     def test_card_checkout_policy_csrf_and_submission(self):
         with patch("app.routers.public.MERCADOPAGO_ENABLED", True):
-            booking = self.book(payment_method="cartao")
-            self.assertEqual(booking.status_code, 303)
-            checkout = self.client.get(booking.headers["location"])
+            checkout = self.existing_card_checkout()
             self.assertEqual(checkout.status_code, 200)
             policy = checkout.headers["content-security-policy"]
             self.assertIn("https://sdk.mercadopago.com", policy)
@@ -140,11 +175,10 @@ class BookingPaymentsTests(unittest.TestCase):
     def test_card_rejection_allows_retry_and_timeout_prevents_resubmission(self):
         from app.payments import MercadoPagoRequestError
         with patch("app.routers.public.MERCADOPAGO_ENABLED", True):
-            booking = self.book(payment_method="cartao")
-            checkout = self.client.get(booking.headers["location"])
+            checkout = self.existing_card_checkout()
             token = re.search(r'data-csrf="([^"]+)"', checkout.text).group(1)
             endpoint = re.search(r'data-endpoint="([^"]+)"', checkout.text).group(1)
-            with patch("app.routers.public.create_mercadopago_card_payment", side_effect=MercadoPagoRequestError(400)):
+            with patch("app.routers.public.create_mercadopago_card_payment", side_effect=MercadoPagoRequestError(400, "bad_request", [])):
                 self.assertEqual(self.client.post(endpoint, json={}, headers={"X-CSRF-Token": token}).status_code, 502)
             with patch("app.routers.public.create_mercadopago_card_payment", side_effect=RuntimeError("Verificando pagamento")) as provider:
                 self.assertEqual(self.client.post(endpoint, json={}, headers={"X-CSRF-Token": token}).status_code, 504)
@@ -193,6 +227,16 @@ class BookingPaymentsTests(unittest.TestCase):
             booking = db.query(Appointment).one()
             self.assertEqual((booking.id, booking.service_id, booking.day, booking.start_time, booking.amount_cents),
                              booking_snapshot)
+
+    def existing_card_checkout(self):
+        """Legacy card records remain usable after cards were removed from new bookings."""
+        self.assertEqual(self.book().status_code, 303)
+        with SessionLocal() as db:
+            appointment = db.query(Appointment).one()
+            appointment.payment_method = "cartao"
+            db.commit()
+            appointment_id = appointment.id
+        return self.client.get(f"/pagamento/cartao/{appointment_id}")
 
     def book(self, **overrides):
         form = self.client.get("/agendar")

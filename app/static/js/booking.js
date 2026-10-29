@@ -6,11 +6,26 @@ const errorBox = document.getElementById("booking-error");
 const submitButton = document.getElementById("booking-submit");
 let slotController;
 
+function updateReview() {
+  const option = serviceSelect.selectedOptions[0];
+  document.getElementById("booking-review-service").textContent = serviceSelect.value
+    ? option.textContent.trim() : "Escolha um serviço";
+  document.getElementById("booking-review-time").textContent = daySelect.value
+    ? `${daySelect.selectedOptions[0].textContent.trim()} · ${startInput.value || "Escolha um horário"}`
+    : "Escolha o dia e um horário disponível.";
+  document.getElementById("booking-review-payment").textContent =
+    document.querySelector('input[name="payment_method"]:checked')?.value === "pix"
+      ? "Pix: a chave aparece após confirmar a reserva." : "Pagamento no salão.";
+}
+document.querySelectorAll('input[name="payment_method"]').forEach((input) => input.addEventListener("change", updateReview));
+updateReview();
+
 async function loadSlots() {
   slotController?.abort();
   const controller = new AbortController();
   slotController = controller;
   startInput.value = "";
+  updateReview();
   errorBox.hidden = true;
   const option = serviceSelect.selectedOptions[0];
   document.getElementById("booking-total").textContent = option?.dataset.price
@@ -51,6 +66,7 @@ async function loadSlots() {
         button.classList.add("chosen");
         button.setAttribute("aria-pressed", "true");
         startInput.value = button.dataset.time;
+        updateReview();
         errorBox.hidden = true;
       });
     });

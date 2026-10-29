@@ -1,8 +1,8 @@
-const CACHE_NAME = "salon-static-v13-card-type";
+const CACHE_NAME = "salon-static-v14-simple-booking";
 const STATIC_ASSETS = [
-  "/static/css/style.css?v=2026-10-19-card-type",
+  "/static/css/style.css?v=2026-10-29-simple-booking",
   "/static/js/theme.js?v=2026-10-16-dark",
-  "/static/js/booking.js?v=2026-10-18-mercadopago-v1",
+  "/static/js/booking.js?v=2026-10-29-simple-booking",
   "/static/js/payment.js?v=2026-10-18-mercadopago-v1",
   "/static/js/pwa.js?v=2026-10-16-wine-v2",
   "/static/icons/brand-wine.svg",
