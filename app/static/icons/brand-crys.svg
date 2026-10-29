@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Crys Nails</title>
+  <desc id="desc">Monograma CN em rosé sobre fundo vinho, com um brilho dourado.</desc>
+  <defs>
+    <linearGradient id="wine" x2="1" y2="1">
+      <stop stop-color="#893552"/>
+      <stop offset="1" stop-color="#581b32"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#wine)"/>
+  <circle cx="256" cy="256" r="185" fill="none" stroke="#e7c99a" stroke-opacity=".55" stroke-width="2"/>
+  <path d="M274 182C252 153 218 144 189 154C146 169 128 212 128 258C128 306 149 346 190 358C223 367 253 352 275 326" fill="none" stroke="#fff1ee" stroke-width="15" stroke-linecap="round"/>
+  <path d="M251 344V174L360 340V170M235 174H270M342 170H377M234 344H268M343 340H377" fill="none" stroke="#f2ced6" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M357 112L363 130L381 136L363 142L357 160L351 142L333 136L351 130Z" fill="#e7c99a"/>
+  <path d="M211 395H301" fill="none" stroke="#e7c99a" stroke-width="3" stroke-linecap="round"/>
+</svg>

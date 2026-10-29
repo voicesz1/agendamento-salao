@@ -7,8 +7,8 @@
   <title>{% block title %}{{ salon_name }}{% endblock %}</title>
   <script src="/static/js/theme.js?v=2026-10-16-dark"></script>
   <link rel="manifest" href="/static/manifest.webmanifest">
-  <link rel="icon" type="image/svg+xml" href="/static/icons/brand-wine.svg">
-  <link rel="apple-touch-icon" href="/static/icons/icon-wine-192.png">
+  <link rel="icon" type="image/svg+xml" href="/static/icons/brand-crys.svg">
+  <link rel="apple-touch-icon" href="/static/icons/icon-crys-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Allura&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -26,9 +26,10 @@
   <header class="top">
     <a class="brand" href="/" aria-label="{{ salon_name }} — início">
       {% if request.url.path == '/' %}
+      <img class="brand-mark" src="/static/icons/brand-crys.svg" alt="">
       <span class="brand-copy homepage-brand-copy"><span class="homepage-wordmark">Crys</span><small>Nails Designer</small></span>
       {% else %}
-      <img class="brand-mark" src="/static/icons/brand-wine.svg" alt="">
+      <img class="brand-mark" src="/static/icons/brand-crys.svg" alt="">
       <span class="brand-copy"><span>{{ salon_name }}</span><small>NAIL STUDIO · SEU MOMENTO</small></span>
       {% endif %}
     </a>
@@ -55,7 +56,7 @@
   </main>
   <footer class="site-footer">
     <div class="footer-brand" id="contato">
-      {% if request.url.path == '/' %}<span class="footer-wordmark" aria-hidden="true">Crys</span>{% else %}<img src="/static/icons/brand-wine.svg" alt="" width="36" height="36">{% endif %}
+      {% if request.url.path == '/' %}<span class="footer-wordmark" aria-hidden="true">Crys</span>{% else %}<img src="/static/icons/brand-crys.svg" alt="" width="36" height="36">{% endif %}
       <div><strong>{{ salon_name }}</strong><span>Seu momento de cuidado, com hora marcada.</span></div>
     </div>
     <div class="footer-actions">
@@ -72,7 +73,7 @@
   <dialog class="install-dialog" id="install-dialog" aria-labelledby="install-dialog-title">
     <div class="install-dialog-content">
       <button class="install-dialog-close" id="install-dialog-close" type="button" aria-label="Fechar">×</button>
-      <img class="install-dialog-mark" src="/static/icons/brand-wine.svg" alt="">
+      <img class="install-dialog-mark" src="/static/icons/brand-crys.svg" alt="">
       <p class="eyebrow">Aplicativo do salão</p>
       <h2 id="install-dialog-title">Instale no seu celular</h2>
       <p id="install-dialog-description">Tenha o agendamento do salão na tela inicial para acessar com mais praticidade.</p>

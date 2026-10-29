@@ -1,13 +1,13 @@
-const CACHE_NAME = "salon-static-v14-simple-booking";
+const CACHE_NAME = "salon-static-v15-crys-logo";
 const STATIC_ASSETS = [
   "/static/css/style.css?v=2026-10-29-simple-booking",
   "/static/js/theme.js?v=2026-10-16-dark",
   "/static/js/booking.js?v=2026-10-29-simple-booking",
   "/static/js/payment.js?v=2026-10-18-mercadopago-v1",
   "/static/js/pwa.js?v=2026-10-16-wine-v2",
-  "/static/icons/brand-wine.svg",
-  "/static/icons/icon-wine-192.png",
-  "/static/icons/icon-wine-512.png",
+  "/static/icons/brand-crys.svg",
+  "/static/icons/icon-crys-192.png",
+  "/static/icons/icon-crys-512.png",
 ];
 
 self.addEventListener("install", (event) => {
