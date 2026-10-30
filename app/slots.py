@@ -19,7 +19,7 @@ def overlaps(a_start: datetime, a_end: datetime, b_start: datetime, b_end: datet
     return a_start < b_end and b_start < a_end
 
 
-def available_slots(db: Session, service: Service, day: date) -> list[str]:
+def available_slots(db: Session, service: Service, day: date, exclude_appointment_id: int | None = None) -> list[str]:
     hours = db.query(BusinessHours).filter(BusinessHours.weekday == day.weekday()).first()
     if not hours or not hours.is_open:
         return []
@@ -46,7 +46,7 @@ def available_slots(db: Session, service: Service, day: date) -> list[str]:
         .filter(Appointment.day == day, Appointment.status == "confirmado")
         .all()
     )
-    busy_ranges = [(combine(a.day, a.start_time), combine(a.day, a.end_time)) for a in busy]
+    busy_ranges = [(combine(a.day, a.start_time), combine(a.day, a.end_time)) for a in busy if a.id != exclude_appointment_id]
 
     break_range = None
     if hours.break_start and hours.break_end:

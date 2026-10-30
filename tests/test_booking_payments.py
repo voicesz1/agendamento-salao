@@ -36,6 +36,78 @@ def tearDownModule():
 
 
 class BookingPaymentsTests(unittest.TestCase):
+    def test_admin_edit_reschedules_without_recreating_or_losing_payment(self):
+        self.book()
+        token = self.login_admin()
+        with SessionLocal() as db:
+            item = db.query(Appointment).one()
+            item.payment_status = "pago"
+            item.payment_confirmed_at = now_local().replace(tzinfo=None)
+            db.commit()
+            item_id, amount, created, paid_at = item.id, item.amount_cents, item.created_at, item.payment_confirmed_at
+        url = f"/admin/agendamentos/{item_id}/editar"
+        page = self.client.get(url)
+        self.assertIn('value="09:00" selected', page.text)
+        data = dict(csrf=token, service_id=self.service_id, day=str(self.day), start_time="09:30",
+                    client_name="Nome atualizado", client_phone="(11) 97777-6666", notes="Nova cor")
+        self.assertEqual(self.client.post(url, data=data, follow_redirects=False).status_code, 303)
+        with SessionLocal() as db:
+            item = db.query(Appointment).one()
+            self.assertEqual((item.id, item.amount_cents, item.created_at, item.payment_confirmed_at),
+                             (item_id, amount, created, paid_at))
+            self.assertEqual(item.start_time.strftime("%H:%M"), "09:30")
+            self.assertEqual((item.client_name, item.client_phone, item.notes, item.payment_status),
+                             ("Nome atualizado", "11977776666", "Nova cor", "pago"))
+        self.assertEqual(self.book(start_time="09:30").status_code, 400)
+
+    def test_admin_edit_rejects_conflicts_invalid_data_and_service_change_when_paid(self):
+        self.book()
+        self.book(start_time="10:00", client_name="Outra cliente")
+        token = self.login_admin()
+        with SessionLocal() as db:
+            item = db.query(Appointment).order_by(Appointment.id).first()
+            item.payment_status = "pago"
+            db.commit()
+            item_id = item.id
+            other_service = db.query(Service).filter(Service.id != self.service_id).first().id
+        url = f"/admin/agendamentos/{item_id}/editar"
+        data = dict(csrf=token, service_id=self.service_id, day=str(self.day), start_time="09:00",
+                    client_name="Cliente", client_phone="11988887777")
+        for invalid in ({"start_time": "09:30"}, {"day": "2000-01-01"}, {"client_phone": "1"},
+                        {"service_id": other_service}, {"day": "invalido"}):
+            self.assertEqual(self.client.post(url, data={**data, **invalid}).status_code, 400)
+        self.assertEqual(self.client.post(url, data={**data, "csrf": "invalid"}).status_code, 403)
+        with SessionLocal() as db:
+            self.assertEqual(db.get(Appointment, item_id).start_time.strftime("%H:%M"), "09:00")
+            self.assertEqual(db.query(Appointment).count(), 2)
+        self.client.cookies.clear()
+        self.assertEqual(self.client.get(url, follow_redirects=False).headers["location"], "/admin/login")
+        self.assertEqual(self.client.post(url, data=data, follow_redirects=False).status_code, 403)
+
+    def test_admin_edit_changes_unpaid_service_and_keeps_historical_contact_editable(self):
+        self.book()
+        token = self.login_admin()
+        with SessionLocal() as db:
+            item = db.query(Appointment).one()
+            item_id = item.id
+            service = db.query(Service).filter(Service.id != self.service_id, Service.active.is_(True)).first()
+            service_id, expected_price = service.id, price_in_cents(service.price)
+        url = f"/admin/agendamentos/{item_id}/editar"
+        data = dict(csrf=token, service_id=service_id, day=str(self.day), start_time="09:00",
+                    client_name="Cliente atualizada", client_phone="11988887777")
+        self.assertEqual(self.client.post(url, data=data, follow_redirects=False).status_code, 303)
+        with SessionLocal() as db:
+            item = db.get(Appointment, item_id)
+            self.assertEqual((item.service_id, item.amount_cents), (service_id, expected_price))
+            item.day = now_local().date() - timedelta(days=3)
+            item.status = "cancelado"
+            db.commit()
+            data["day"] = item.day.isoformat()
+        self.assertIn('name="client_name"', self.client.get(url).text)
+        self.assertEqual(self.client.post(url, data=data, follow_redirects=False).status_code, 303)
+        with SessionLocal() as db:
+            self.assertEqual(db.get(Appointment, item_id).status, "cancelado")
+
     def test_admin_can_book_and_cannot_overlap_public_booking(self):
         self.login_admin()
         page = self.client.get(f"/admin/agendar?service_id={self.service_id}&day={self.day}")

@@ -164,22 +164,27 @@ def dashboard(request: Request, status: str = "todos", periodo: str = "hoje", bu
     )
 
 
-def booking_page(request, db, service_id="", day="", error=None, values=None):
+def booking_page(request, db, service_id="", day="", error=None, values=None, appointment=None):
     services = db.query(Service).filter(Service.active.is_(True)).order_by(Service.name).all()
+    if appointment and appointment.service not in services:
+        services.append(appointment.service)
     selected = next((s for s in services if str(s.id) == str(service_id)), None)
     today = now_local().date()
     slots = []
     try:
         chosen = date.fromisoformat(day)
         if selected and today <= chosen <= today + timedelta(days=365):
-            slots = available_slots(db, selected, chosen)
+            slots = available_slots(db, selected, chosen, appointment.id if appointment else None)
     except ValueError:
         pass
+    if appointment and str(appointment.service_id) == str(service_id) and appointment.day.isoformat() == day:
+        slots = sorted(set(slots + [appointment.start_time.strftime("%H:%M")]))
     return templates.TemplateResponse(request, "admin/agendar.html", {
         "salon_name": get_setting(db, "salon_name"), "csrf_token": csrf_value(request),
         "services": services, "selected": selected, "day": day, "slots": slots,
         "today": today.isoformat(), "last_day": (today + timedelta(days=365)).isoformat(),
-        "error": error, "values": values or {},
+        "error": error, "values": values or {}, "appointment": appointment,
+        "action": f"/admin/agendamentos/{appointment.id}/editar" if appointment else "/admin/agendar",
     }, status_code=400 if error else 200)
 
 
@@ -237,6 +242,74 @@ def admin_create_booking(
     ))
     db.commit()
     return RedirectResponse("/admin?periodo=proximos&criado=1", status_code=303)
+
+
+@router.get("/agendamentos/{appointment_id}/editar", response_class=HTMLResponse)
+def edit_booking_page(request: Request, appointment_id: int, service_id: str = "", day: str = "", db: Session = Depends(get_db)):
+    if (redirect := require_admin(request)):
+        return redirect
+    appointment = db.get(Appointment, appointment_id)
+    if not appointment:
+        return RedirectResponse("/admin?periodo=todos", status_code=303)
+    return booking_page(request, db, service_id or str(appointment.service_id), day or appointment.day.isoformat(),
+                        values={"client_name": appointment.client_name, "client_phone": appointment.client_phone,
+                                "notes": appointment.notes, "start_time": appointment.start_time.strftime("%H:%M")},
+                        appointment=appointment)
+
+
+@router.post("/agendamentos/{appointment_id}/editar", response_class=HTMLResponse)
+def edit_booking(
+    request: Request, appointment_id: int, service_id: str = Form(""), day: str = Form(""),
+    start_time: str = Form(""), client_name: str = Form(""), client_phone: str = Form(""),
+    notes: str = Form(""), _csrf: None = Depends(validate_csrf), db: Session = Depends(get_db),
+):
+    if (redirect := require_admin(request)):
+        return redirect
+    if db.bind and db.bind.dialect.name == "sqlite":
+        db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).with_for_update().first()
+    if not appointment:
+        return RedirectResponse("/admin?periodo=todos", status_code=303)
+    values = dict(client_name=client_name, client_phone=client_phone, notes=notes, start_time=start_time)
+
+    def fail(message):
+        return booking_page(request, db, service_id, day, message, values, appointment)
+
+    service = db.get(Service, int(service_id)) if service_id.isascii() and service_id.isdigit() and len(service_id) < 10 else None
+    if not service or (not service.active and service.id != appointment.service_id):
+        return fail("Escolha um serviço disponível.")
+    phone = "".join(c for c in client_phone if c in "0123456789")
+    if not 2 <= len(client_name.strip()) <= 120 or not 10 <= len(phone) <= 15 or len(notes.strip()) > 1000:
+        return fail("Confira o nome, o WhatsApp com DDD e a observação (até 1.000 caracteres).")
+    try:
+        chosen = date.fromisoformat(day)
+        start = datetime.strptime(start_time, "%H:%M").time()
+    except ValueError:
+        return fail("Escolha um dia e um horário válido.")
+    changed_service = service.id != appointment.service_id
+    changed_schedule = changed_service or chosen != appointment.day or start != appointment.start_time
+    if changed_service and (appointment.payment_status == "pago" or appointment.payment_method == "cartao"):
+        return fail("Este agendamento tem pagamento registrado ou cobrança no cartão. Mantenha o serviço para preservar o valor da cobrança.")
+    if changed_schedule:
+        if appointment.status != "confirmado":
+            return fail("O agendamento está cancelado. Edite os dados da cliente ou faça uma nova reserva para reagendar.")
+        if not now_local().date() <= chosen <= now_local().date() + timedelta(days=365):
+            return fail("Escolha uma data de hoje até os próximos 12 meses.")
+        if db.bind and db.bind.dialect.name == "postgresql":
+            db.execute(text("SELECT pg_advisory_xact_lock(hashtext(:day))"), {"day": chosen.isoformat()})
+        if start.strftime("%H:%M") not in available_slots(db, service, chosen, appointment.id):
+            return fail("Esse horário não está mais disponível. Escolha outro.")
+        appointment.day = chosen
+        appointment.start_time = start
+        appointment.end_time = (datetime.combine(chosen, start) + timedelta(minutes=service.duration_minutes)).time()
+    if changed_service:
+        appointment.service_id = service.id
+        appointment.amount_cents = price_in_cents(service.price)
+    appointment.client_name = client_name.strip()
+    appointment.client_phone = phone
+    appointment.notes = notes.strip()
+    db.commit()
+    return RedirectResponse("/admin?periodo=todos&editado=1", status_code=303)
 
 
 @router.post("/agendamentos/{appointment_id}/status")

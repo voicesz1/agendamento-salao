@@ -4,6 +4,7 @@
 <h1>Agendamentos</h1>
 <p><a class="btn" href="/admin/agendar">+ Agendar cliente</a></p>
 {% if request.query_params.get('criado') == '1' %}<p class="alert" role="status">Agendamento confirmado. A cliente já está na agenda.</p>{% endif %}
+{% if request.query_params.get('editado') == '1' %}<p class="alert" role="status">Agendamento atualizado com sucesso.</p>{% endif %}
 <p class="hint">{{ today.strftime('%d/%m/%Y') }} · Consulte os atendimentos e registre os pagamentos em um só lugar.</p>
 <form method="get" action="/admin" class="agenda-search">
   <label>Ver agenda
@@ -68,6 +69,7 @@
         {% if item.status == 'cancelado' and item.payment_status == 'pago' %}<p class="hint">Cancelamento não estorna o pagamento. Combine a devolução com a cliente.</p>{% endif %}
       </td>
       <td data-label="Ações">
+        <a class="text-link" href="/admin/agendamentos/{{ item.id }}/editar">Editar</a>
         {% if item.status == 'confirmado' %}
         <form method="post" action="/admin/agendamentos/{{ item.id }}/status">
           <input type="hidden" name="csrf" value="{{ csrf_token }}">
