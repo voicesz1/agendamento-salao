@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import hmac
 import time
 from threading import Lock
@@ -6,13 +6,15 @@ from threading import Lock
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import text
 from sqlalchemy.orm import Session, joinedload
 
 from app.config import BASE_DIR, TIMEZONE
 from app.csrf import csrf_value, validate_csrf
 from app.database import get_db
 from app.models import Appointment, BusinessHours, ClosedDate, Service
-from app.payments import pix_settings
+from app.payments import pix_settings, price_in_cents
+from app.slots import available_slots, now_local, slot_is_free
 from app.security import hash_password, verify_password
 from app.service_images import read_service_image, set_service_image
 from app.settings_store import get_setting, set_setting
@@ -160,6 +162,81 @@ def dashboard(request: Request, status: str = "todos", periodo: str = "hoje", bu
             "counts": counts,
         },
     )
+
+
+def booking_page(request, db, service_id="", day="", error=None, values=None):
+    services = db.query(Service).filter(Service.active.is_(True)).order_by(Service.name).all()
+    selected = next((s for s in services if str(s.id) == str(service_id)), None)
+    today = now_local().date()
+    slots = []
+    try:
+        chosen = date.fromisoformat(day)
+        if selected and today <= chosen <= today + timedelta(days=365):
+            slots = available_slots(db, selected, chosen)
+    except ValueError:
+        pass
+    return templates.TemplateResponse(request, "admin/agendar.html", {
+        "salon_name": get_setting(db, "salon_name"), "csrf_token": csrf_value(request),
+        "services": services, "selected": selected, "day": day, "slots": slots,
+        "today": today.isoformat(), "last_day": (today + timedelta(days=365)).isoformat(),
+        "error": error, "values": values or {},
+    }, status_code=400 if error else 200)
+
+
+@router.get("/agendar", response_class=HTMLResponse)
+def admin_booking(request: Request, service_id: str = "", day: str = "", db: Session = Depends(get_db)):
+    if (redirect := require_admin(request)):
+        return redirect
+    return booking_page(request, db, service_id, day)
+
+
+@router.post("/agendar", response_class=HTMLResponse)
+def admin_create_booking(
+    request: Request, service_id: str = Form(""), day: str = Form(""),
+    start_time: str = Form(""), client_name: str = Form(""),
+    client_phone: str = Form(""), notes: str = Form(""),
+    _csrf: None = Depends(validate_csrf), db: Session = Depends(get_db),
+):
+    if (redirect := require_admin(request)):
+        return redirect
+    # Share the public booking lock so both entry points cannot reserve the same slot.
+    if db.bind and db.bind.dialect.name == "sqlite":
+        db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+    elif db.bind and db.bind.dialect.name == "postgresql":
+        db.execute(text("SELECT pg_advisory_xact_lock(hashtext(:day))"), {"day": day})
+    values = {"client_name": client_name, "client_phone": client_phone, "notes": notes}
+
+    def fail(message):
+        return booking_page(request, db, service_id, day, message, values)
+
+    service = db.get(Service, int(service_id)) if service_id.isascii() and service_id.isdigit() and len(service_id) < 10 else None
+    if not service or not service.active:
+        return fail("Escolha um serviço disponível.")
+    phone = "".join(c for c in client_phone if c in "0123456789")
+    if not 2 <= len(client_name.strip()) <= 120:
+        return fail("Informe o nome da cliente, de 2 a 120 caracteres.")
+    if not 10 <= len(phone) <= 15:
+        return fail("Informe um WhatsApp válido com DDD.")
+    if len(notes.strip()) > 1000:
+        return fail("A observação deve ter no máximo 1.000 caracteres.")
+    try:
+        chosen = date.fromisoformat(day)
+        start = datetime.strptime(start_time, "%H:%M").time()
+    except ValueError:
+        return fail("Escolha um dia e um horário disponível.")
+    if not now_local().date() <= chosen <= now_local().date() + timedelta(days=365):
+        return fail("Escolha uma data de hoje até os próximos 12 meses.")
+    if not slot_is_free(db, service, chosen, start.strftime("%H:%M")):
+        return fail("Esse horário não está mais disponível. Escolha outro.")
+    db.add(Appointment(
+        service_id=service.id, client_name=client_name.strip(), client_phone=phone,
+        notes=notes.strip(), day=chosen, start_time=start,
+        end_time=(datetime.combine(chosen, start) + timedelta(minutes=service.duration_minutes)).time(),
+        status="confirmado", created_at=now_local().replace(tzinfo=None),
+        amount_cents=price_in_cents(service.price), payment_method="no_local", payment_status="pendente",
+    ))
+    db.commit()
+    return RedirectResponse("/admin?periodo=proximos&criado=1", status_code=303)
 
 
 @router.post("/agendamentos/{appointment_id}/status")

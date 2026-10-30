@@ -1,0 +1,40 @@
+{% extends "admin/layout.html" %}
+{% block title %}Agendar cliente{% endblock %}
+{% block content %}
+<h1>Agendar cliente</h1>
+<p class="hint">Reserve um atendimento recebido por telefone, WhatsApp ou pessoalmente. A cliente não precisa criar uma conta.</p>
+{% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
+<section class="booking">
+  <h2>1. Serviço e dia</h2>
+  <form method="get" action="/admin/agendar">
+    <label>Serviço
+      <select name="service_id" required>
+        <option value="">Escolha um serviço</option>
+        {% for service in services %}<option value="{{ service.id }}" {% if selected and selected.id == service.id %}selected{% endif %}>{{ service.name }} — R$ {{ '%.2f'|format(service.price)|replace('.', ',') }} ({{ service.duration_minutes }} min)</option>{% endfor %}
+      </select>
+    </label>
+    <label>Dia<input type="date" name="day" value="{{ day }}" min="{{ today }}" max="{{ last_day }}" required></label>
+    <button type="submit" class="btn">Ver horários disponíveis</button>
+  </form>
+</section>
+{% if selected and day %}
+<section class="booking">
+  <h2>2. Horário e cliente</h2>
+  {% if slots %}
+  <p>{{ selected.name }} · {{ day[8:10] }}/{{ day[5:7] }}/{{ day[:4] }}</p>
+  <form method="post" action="/admin/agendar">
+    <input type="hidden" name="csrf" value="{{ csrf_token }}">
+    <input type="hidden" name="service_id" value="{{ selected.id }}">
+    <input type="hidden" name="day" value="{{ day }}">
+    <label>Horário disponível<select name="start_time" required><option value="">Escolha o horário</option>{% for slot in slots %}<option value="{{ slot }}">{{ slot }}</option>{% endfor %}</select></label>
+    <label>Nome da cliente<input name="client_name" value="{{ values.get('client_name', '') }}" minlength="2" maxlength="120" autocomplete="name" required></label>
+    <label>WhatsApp com DDD<input type="tel" name="client_phone" value="{{ values.get('client_phone', '') }}" maxlength="30" autocomplete="tel" placeholder="(11) 99999-9999" required></label>
+    <label>Observação (opcional)<textarea name="notes" rows="3" maxlength="1000">{{ values.get('notes', '') }}</textarea></label>
+    <p class="hint">Pagamento no salão, inicialmente pendente. Registre o recebimento na agenda após conferir o pagamento.</p>
+    <button class="btn" type="submit">Confirmar agendamento</button>
+  </form>
+  {% else %}<p class="hint">Não há horários livres neste dia. Escolha outra data acima.</p>{% endif %}
+</section>
+{% endif %}
+<p><a href="/admin" class="text-link">Voltar à agenda</a></p>
+{% endblock %}

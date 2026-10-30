@@ -36,6 +36,45 @@ def tearDownModule():
 
 
 class BookingPaymentsTests(unittest.TestCase):
+    def test_admin_can_book_and_cannot_overlap_public_booking(self):
+        self.login_admin()
+        page = self.client.get(f"/admin/agendar?service_id={self.service_id}&day={self.day}")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn('value="09:00"', page.text)
+        data = dict(csrf=csrf(page), service_id=self.service_id, day=str(self.day),
+                    start_time="09:00", client_name="Cliente pela administradora",
+                    client_phone="(11) 98888-7777", notes="Preferência de cor")
+        result = self.client.post("/admin/agendar", data=data, follow_redirects=False)
+        self.assertEqual(result.status_code, 303)
+        agenda = self.client.get(result.headers["location"])
+        self.assertIn("Agendamento confirmado", agenda.text)
+        self.assertIn("Cliente pela administradora", agenda.text)
+        result = self.client.post("/admin/agendar", data=data)
+        self.assertEqual(result.status_code, 400)
+        self.assertIn("não está mais disponível", result.text)
+        self.assertIn('value="Cliente pela administradora"', result.text)
+        self.assertEqual(self.book().status_code, 400)
+        with SessionLocal() as db:
+            booking = db.query(Appointment).one()
+            self.assertEqual(booking.client_phone, "11988887777")
+            self.assertEqual(booking.payment_status, "pendente")
+            self.assertEqual(booking.amount_cents, price_in_cents(booking.service.price))
+
+    def test_admin_booking_requires_login_csrf_and_valid_data(self):
+        result = self.client.get("/admin/agendar", follow_redirects=False)
+        self.assertEqual(result.headers["location"], "/admin/login")
+        self.login_admin()
+        page = self.client.get("/admin/agendar")
+        data = dict(service_id=self.service_id, day=str(self.day), start_time="09:00",
+                    client_name="Cliente", client_phone="11988887777")
+        self.assertEqual(self.client.post("/admin/agendar", data={**data, "csrf": "invalid"}).status_code, 403)
+        for invalid in ({"client_phone": "1"}, {"client_name": " "}, {"day": "2000-01-01"},
+                        {"start_time": "03:00"}, {"service_id": "invalid"}):
+            result = self.client.post("/admin/agendar", data={**data, "csrf": csrf(page), **invalid})
+            self.assertEqual(result.status_code, 400)
+        with SessionLocal() as db:
+            self.assertEqual(db.query(Appointment).count(), 0)
+
     def test_agenda_filters_keep_history_and_do_not_modify_bookings(self):
         self.assertEqual(self.book(client_name="Cliente futura").status_code, 303)
         with SessionLocal() as db:

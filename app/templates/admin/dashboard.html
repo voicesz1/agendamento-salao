@@ -2,6 +2,8 @@
 {% block title %}Agendamentos{% endblock %}
 {% block content %}
 <h1>Agendamentos</h1>
+<p><a class="btn" href="/admin/agendar">+ Agendar cliente</a></p>
+{% if request.query_params.get('criado') == '1' %}<p class="alert" role="status">Agendamento confirmado. A cliente já está na agenda.</p>{% endif %}
 <p class="hint">{{ today.strftime('%d/%m/%Y') }} · Consulte os atendimentos e registre os pagamentos em um só lugar.</p>
 <form method="get" action="/admin" class="agenda-search">
   <label>Ver agenda
