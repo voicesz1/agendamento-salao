@@ -1,6 +1,6 @@
-const CACHE_NAME = "salon-static-v15-crys-logo";
+const CACHE_NAME = "salon-static-v16-no-studio-photo";
 const STATIC_ASSETS = [
-  "/static/css/style.css?v=2026-10-29-simple-booking",
+  "/static/css/style.css?v=2026-10-29-no-studio-photo",
   "/static/js/theme.js?v=2026-10-16-dark",
   "/static/js/booking.js?v=2026-10-29-simple-booking",
   "/static/js/payment.js?v=2026-10-18-mercadopago-v1",
